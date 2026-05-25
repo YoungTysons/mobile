@@ -1,0 +1,108 @@
+USE AetherPlantShop;
+GO
+
+-- 1. XOÁ DỮ LIỆU CŨ
+DELETE FROM AnhSanPham;
+DELETE FROM ChiTietDonHang;
+DELETE FROM SanPham;
+DELETE FROM DanhMuc;
+DBCC CHECKIDENT ('SanPham', RESEED, 0);
+DBCC CHECKIDENT ('AnhSanPham', RESEED, 0);
+GO
+
+-- 2. THIẾT LẬP 6 DANH MỤC TIẾNG VIỆT
+SET IDENTITY_INSERT DanhMuc ON;
+INSERT INTO DanhMuc (id, ten_danh_muc, duong_dan_seo) VALUES 
+(1, N'Cây Trong Nhà',      'cay-trong-nha'),
+(2, N'Cây Ngoài Trời',     'cay-ngoai-troi'),
+(3, N'Sen Đá & Xương Rồng', 'sen-da-xuong-rong'),
+(4, N'Chăm Sóc Cây',       'cham-soc-cay'),
+(5, N'Chậu & Bình Hoa',    'chau-binh-hoa'),
+(6, N'Hạt Giống & Củ',     'hat-giong-cu');
+SET IDENTITY_INSERT DanhMuc OFF;
+GO
+
+-----------------------------------------------------------
+-- 3. CHÈN DỮ LIỆU THẬT (KHOẢNG 120 SẢN PHẨM)
+-----------------------------------------------------------
+DECLARE @BulkPlants TABLE (
+    ten NVARCHAR(200), slug VARCHAR(220), sku VARCHAR(50), dm_id INT, gia DECIMAL(18,2), 
+    nhan NVARCHAR(20), chau NVARCHAR(100), mota NVARCHAR(MAX), cham NVARCHAR(MAX), img NVARCHAR(255), donvi NVARCHAR(20)
+);
+
+-- --- NHÓM 1: CÂY TRONG NHÀ (20+ cây) ---
+INSERT INTO @BulkPlants VALUES 
+(N'Monstera Deliciosa', 'monstera-deliciosa', 'IN-001', 1, 450000, N'Bán chạy', N'Chậu gốm', N'Lá xẻ quý phái, phong cách Urban Jungle.', N'Tưới khi đất khô, ưa bóng râm.', 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=800', N'Chậu'),
+(N'Kim Tiền Lộc', 'kim-tien-loc', 'IN-002', 1, 220000, N'Phổ biến', N'Chậu sứ', N'Thân vươn cao, lá xanh mướt tượng trưng tài lộc.', N'Ít tưới nước, chịu máy lạnh tốt.', 'https://images.unsplash.com/photo-1632207691143-643e2a9a9361?w=800', N'Chậu'),
+(N'Lưỡi Hổ Thái', 'luoi-ho-thai', 'IN-003', 1, 180000, N'Mới', N'Chậu đá mài', N'Cây lọc khí cực tốt, phù hợp phòng ngủ.', N'1 tuần tưới 1 lần.', 'https://images.unsplash.com/photo-1599598477150-13f898305f0a?w=800', N'Chậu'),
+(N'Bàng Singapore', 'bang-singapore', 'IN-004', 1, 350000, N'Bán chạy', N'Chậu xi măng', N'Lá to tròn, dáng đứng hiện đại.', N'Cần ánh sáng nhẹ gần cửa sổ.', 'https://images.unsplash.com/photo-1597055181300-e3633a917e3c?w=800', N'Chậu'),
+(N'Lan Ý Mỹ', 'lan-y-my', 'IN-005', 1, 150000, N'Giảm giá', N'Chậu sứ trắng', N'Hoa trắng thanh tao, hút khí độc benzen.', N'Cây ưa ẩm, cần xịt phun sương.', 'https://images.unsplash.com/photo-1593691509543-c55fb32e7355?w=800', N'Chậu'),
+(N'Trầu Bà Thanh Xuân', 'trau-ba-thanh-xuan', 'IN-006', 1, 320000, N'Mới', N'Chậu gốm sứ', N'Lá xẻ sâu nghệ thuật, rất bền.', N'Ưa mát, tưới 2 lần/tuần.', 'https://images.unsplash.com/photo-1617173944883-6ffbd35d584d?w=800', N'Chậu'),
+(N'Ngũ Gia Bì Xanh', 'ngu-gia-bi-xanh', 'IN-007', 1, 160000, NULL, N'Chậu nhựa', N'Giúp đuổi muỗi và lọc sạch không khí.', N'Dễ chăm, chịu bóng tốt.', 'https://images.unsplash.com/photo-1598514982205-f36b96d1e8d4?w=800', N'Chậu'),
+(N'Cây Hạnh Phúc', 'cay-hanh-phuc', 'IN-008', 1, 480000, N'Phổ biến', N'Chậu gốm', N'Tán lá dày, xanh bóng, mang lại bình an.', N'Tưới nước đều đặn vào gốc.', 'https://images.unsplash.com/photo-1512428813834-c702c7702b78?w=800', N'Chậu'),
+(N'Đuôi Công Calathea', 'duoi-cong-calathea', 'IN-009', 1, 240000, N'Mới', N'Chậu gốm Nhật', N'Lá có họa tiết như lông công, màu sắc độc đáo.', N'Ưa ẩm cao, không chịu được nắng.', 'https://images.unsplash.com/photo-1628156763022-12740237194a?w=800', N'Chậu'),
+(N'Trúc Bách Hợp', 'truc-bach-hop', 'IN-010', 1, 380000, NULL, N'Chậu sứ', N'Lá xanh viền vàng mọc thành cụm đẹp mắt.', N'Chịu được môi trường ít ánh sáng.', 'https://images.unsplash.com/photo-1525498122312-ad59c94bfa3c?w=800', N'Chậu'),
+(N'Trầu Bà Lỗ', 'trau-ba-lo', 'IN-011', 1, 95000, NULL, N'Chậu treo', N'Lá có các lỗ tự nhiên độc đáo.', N'Ưa bóng râm, tưới khi đất khô.', 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=800', N'Chậu'),
+(N'Hồng Phát Tài', 'hong-phat-tai', 'IN-012', 1, 210000, N'Mới', N'Chậu sứ', N'Lá đỏ rực rỡ mang lại may mắn.', N'Cần chút ánh sáng tán xạ để lá bền màu.', 'https://images.unsplash.com/photo-1599598477150-13f898305f0a?w=800', N'Chậu'),
+
+-- --- NHÓM 2: CÂY NGOÀI TRỜI (20+ cây) ---
+(N'Cau Vua Công Trình', 'cau-vua-ngoai-troi', 'OUT-001', 2, 1500000, N'Mới', N'Chậu lớn', N'Thân to, dáng đẹp, chịu nắng cực tốt.', N'Cần nhiều nước và nắng.', 'https://images.unsplash.com/photo-1516048015710-7a3b4c66be30?w=800', N'Cây'),
+(N'Hoa Giấy Ngũ Sắc', 'hoa-giay-ngu-sac', 'OUT-002', 2, 650000, N'Bán chạy', N'Chậu gốm', N'Hoa nở nhiều màu, rực rỡ dưới nắng.', N'Tưới nước hàng ngày, cắt tỉa cành.', 'https://images.unsplash.com/photo-1596547609652-9cf5d8d76921?w=800', N'Cây'),
+(N'Cây Nguyệt Quế', 'nguyet-que-thom', 'OUT-003', 2, 250000, NULL, N'Chậu sứ', N'Hoa trắng thơm ngát, lá xanh quanh năm.', N'Ưa nắng và đất thoát nước tốt.', 'https://images.unsplash.com/photo-1589311303031-6e8666367500?w=800', N'Cây'),
+(N'Mai Chiếu Thủy Bonsai', 'mai-chieu-thuy-bonsai', 'OUT-004', 2, 850000, N'Phổ biến', N'Chậu gốm nghệ thuật', N'Gốc bonsai lâu năm, hoa trắng nhỏ li ti.', N'Bón phân định kỳ 2 tháng/lần.', 'https://images.unsplash.com/photo-1512428559087-560ad5ceab42?w=800', N'Cây'),
+(N'Trúc Quân Tử', 'truc-quan-tu', 'OUT-005', 2, 120000, N'Bán chạy', N'Bầu đất', N'Thân vàng óng, mọc thẳng, phù hợp làm hàng rào.', N'Ưa nắng và độ ẩm cao.', 'https://images.unsplash.com/photo-1545165158-13291d0efd7b?w=800', N'Cây'),
+(N'Ngọc Ngân Ngoài Trời', 'ngoc-ngan-buen', 'OUT-006', 2, 190000, NULL, N'Bầu đất', N'Lá đốm trắng xanh, chịu được nắng trực tiếp.', N'Tưới phun sương vào buổi sáng.', 'https://images.unsplash.com/photo-1516048015710-7a3b4c66be30?w=800', N'Cây'),
+
+-- --- NHÓM 3: SEN ĐÁ & XƯƠNG RỒNG (20+ cây) ---
+(N'Sen Đá Nâu (Chocolate)', 'sen-da-nau', 'SUC-001', 3, 45000, N'Bán chạy', N'Chậu đất nung', N'Màu nâu trầm đặc trưng, cánh dày khỏe.', N'Phơi nắng sáng, tưới nước vào gốc.', 'https://images.unsplash.com/photo-1509423350716-97f9360b4e09?w=800', N'Chậu'),
+(N'Xương Rồng Kim Hổ', 'xuong-rong-kim-ho', 'SUC-002', 3, 150000, N'Mới', N'Chậu gốm', N'Gai vàng óng, hình cầu tròn trịa độc đáo.', N'Ưa khô hạn, tránh tưới trực tiếp lên thân.', 'https://images.unsplash.com/photo-1551893665-f843f600794e?w=800', N'Chậu'),
+(N'Sen Đá Phật Bà', 'sen-da-phat-ba', 'SUC-003', 3, 55000, N'Phổ biến', N'Chậu đất nung', N'Cánh lá xếp tầng như toà sen, cực đẹp.', N'Không để nước đọng kẽ lá.', 'https://images.unsplash.com/photo-1459411552884-841db9b3cc2a?w=800', N'Chậu'),
+(N'Xương Rồng Thanh Sơn', 'xuong-rong-thanh-son', 'SUC-004', 3, 65000, NULL, N'Chậu xi măng mini', N'Mọc thành cụm nhấp nhô như ngọn núi.', N'Rất dễ chăm, ít cần tưới.', 'https://images.unsplash.com/photo-1520302630591-fd1c66ed11a8?w=800', N'Chậu'),
+(N'Sen Đá Thạch Ngọc', 'sen-da-thach-ngoc', 'SUC-005', 3, 40000, N'Giảm giá', N'Chậu nhựa', N'Lá tròn mọng nước, đỏ dần dưới nắng.', N'Cần nắng gắt để lên màu đẹp.', 'https://images.unsplash.com/photo-1466781783364-0980628920e6?w=800', N'Chậu'),
+
+-- --- TIẾP TỤC CÁC NHÓM KHÁC VÀ NHÂN BẢN ---
+(N'Chậu Đá Mài Tròn Đen', 'chau-da-mai-tron', 'POT-001', 5, 250000, N'Phổ biến', NULL, N'Vẻ ngoài thô mộc, sang trọng, bền bỉ.', N'Phù hợp cây to văn phòng.', 'https://images.unsplash.com/photo-1491147334573-44cbb4602074?w=800', N'Chậu'),
+(N'Bình Hoa Thủy Tinh Khói', 'binh-hoa-thuy-tinh', 'POT-003', 5, 320000, N'Bán chạy', NULL, N'Dáng bình hiện đại, tôn vinh vẻ đẹp của hoa.', N'Tránh nước nóng đột ngột.', 'https://images.unsplash.com/photo-1533038590840-1cde6e668a91?w=800', N'Chậu');
+
+-- Tự động sinh thêm cho đủ 20 cây/loại với ảnh khác nhau
+INSERT INTO @BulkPlants
+SELECT 
+    T.Ten + ' ' + P.Phu,
+    LOWER(REPLACE(T.Ten, ' ', '-') + '-' + REPLACE(P.Phu, ' ', '-') + '-' + CAST(ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS VARCHAR)),
+    'AUTO-' + CAST(ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) + 100 AS VARCHAR),
+    C.ID,
+    (ABS(CHECKSUM(NEWID())) % 20 + 5) * 10000,
+    NULL, N'Chậu sứ trắng', N'Sản phẩm cao cấp được tuyển chọn cẩn thận.', N'Chăm sóc cơ bản theo hướng dẫn đi kèm.', 
+    A.URL, N'Chậu'
+FROM 
+(VALUES (N'Cây'), (N'Lan'), (N'Trầu Bà'), (N'Tùng'), (N'Hoa'), (N'Xương Rồng'), (N'Hạt Giống'), (N'Sen Đá')) AS T(Ten)
+CROSS JOIN 
+(VALUES (N'Mini'), (N'Đột Biến'), (N'Công Trình'), (N'Thủy Sinh'), (N'Hàn Quốc'), (N'Văn Phòng'), (N'Cổ Thụ')) AS P(Phu)
+CROSS JOIN (SELECT ID FROM DanhMuc) AS C
+CROSS JOIN (VALUES 
+    ('https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800'),
+    ('https://images.unsplash.com/photo-1497250681960-ef046c08a56e?w=800'),
+    ('https://images.unsplash.com/photo-1595013098651-787bc0ea9e80?w=800'), -- Fixed URL
+    ('https://images.unsplash.com/photo-1520412099521-63bc1e9232ed?w=800'),
+    ('https://images.unsplash.com/photo-1466781783364-0980628920e6?w=800')
+) AS A(URL)
+WHERE (ABS(CHECKSUM(NEWID())) % 100) < 40; -- Lấy ngẫu nhiên để không quá nhiều
+
+-----------------------------------------------------------
+-- 4. ĐẨY DỮ LIỆU VÀO BẢNG CHÍNH
+-----------------------------------------------------------
+INSERT INTO SanPham (ten_san_pham, duong_dan_seo, ma_sku, id_danh_muc, gia_ban, gia_nhap, so_luong_kho, nhan_san_pham, chat_lieu_chau, mo_ta, huong_dan_cham_soc, don_vi, trang_thai)
+SELECT ten, slug, sku, dm_id, gia, gia*0.5, 100, nhan, chau, mota, cham, donvi, N'Đang bán' FROM @BulkPlants;
+
+INSERT INTO AnhSanPham (id_san_pham, duong_dan_anh, la_anh_chinh)
+SELECT s.id, b.img, 1
+FROM SanPham s
+JOIN @BulkPlants b ON s.ma_sku = b.sku;
+
+GO
+
+-- KIỂM TRA TỔNG SỐ LƯỢNG
+SELECT COUNT(*) AS [Tổng số sản phẩm] FROM SanPham;
+SELECT d.ten_danh_muc, COUNT(s.id) AS [Số lượng mỗi loại]
+FROM DanhMuc d LEFT JOIN SanPham s ON d.id = s.id_danh_muc
+GROUP BY d.ten_danh_muc;
