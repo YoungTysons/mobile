@@ -11,7 +11,7 @@ import {
   Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { Colors } from '../../constants/theme';
@@ -29,11 +29,30 @@ export default function AdminDashboardScreen() {
     tonKhoThap: []
   });
   const [orders, setOrders] = useState<any[]>([]);
+  const [adminNotifs, setAdminNotifs] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'metrics' | 'orders' | 'stock'>('metrics');
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const sortOrders = (ordersList: any[]) => {
+    const unfinishedStatuses = ['Chờ xác nhận', 'Chờ thanh toán', 'Đang xử lý', 'Đang giao'];
+    
+    return [...ordersList].sort((a, b) => {
+      const aIsUnfinished = unfinishedStatuses.includes(a.trang_thai_don_hang);
+      const bIsUnfinished = unfinishedStatuses.includes(b.trang_thai_don_hang);
+      
+      if (aIsUnfinished && !bIsUnfinished) return -1;
+      if (!aIsUnfinished && bIsUnfinished) return 1;
+      
+      const aTime = new Date(a.ngay_dat).getTime();
+      const bTime = new Date(b.ngay_dat).getTime();
+      return bTime - aTime;
+    });
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   const loadData = async () => {
     setLoading(true);
@@ -47,14 +66,14 @@ export default function AdminDashboardScreen() {
       // Gọi API toàn bộ đơn hàng
       const ordersRes = await api.get('/don-hang').catch(() => null);
       if (ordersRes && ordersRes.data) {
-        setOrders(ordersRes.data);
+        setOrders(sortOrders(ordersRes.data));
       } else {
         // Fallback mock data phong phú để test
-        setOrders([
+        setOrders(sortOrders([
           { id: 1025, ngay_dat: new Date().toISOString(), tong_tien_hang: 680000, trang_thai_don_hang: 'Chờ xác nhận', phuong_thuc_thanh_toan: 'VietQR', ho_ten: 'Trần Thị Mai', dia_chi_giao_hang: '12 Cầu Giấy, Hà Nội' },
           { id: 1024, ngay_dat: '2026-05-25T12:00:00Z', tong_tien_hang: 510000, trang_thai_don_hang: 'Đang giao', phuong_thuc_thanh_toan: 'Chuyển khoản', ho_ten: 'Nguyễn Văn Khách', dia_chi_giao_hang: '789 Đường Láng, Hà Nội' },
           { id: 1023, ngay_dat: '2026-05-24T08:30:00Z', tong_tien_hang: 280000, trang_thai_don_hang: 'Đã giao', phuong_thuc_thanh_toan: 'COD', ho_ten: 'Lê Văn Nam', dia_chi_giao_hang: '45 Nguyễn Trãi, Thanh Xuân, Hà Nội' }
-        ]);
+        ]));
       }
 
       // Gọi danh sách tồn kho thấp
@@ -72,6 +91,12 @@ export default function AdminDashboardScreen() {
           ]
         }));
       }
+
+      // Gọi API thông báo admin live
+      const notifsRes = await api.get('/notifications/admin').catch(() => null);
+      if (notifsRes && notifsRes.data && notifsRes.data.success) {
+        setAdminNotifs(notifsRes.data.data);
+      }
     } catch (err: any) {
       console.log('Lỗi tải dữ liệu quản trị:', err.message);
     } finally {
@@ -79,39 +104,70 @@ export default function AdminDashboardScreen() {
     }
   };
 
-  const handleUpdateStatus = async (orderId: number, currentStatus: string) => {
-    let nextStatus = 'Đang xử lý';
-    if (currentStatus === 'Chờ xác nhận' || currentStatus === 'Chờ thanh toán') nextStatus = 'Đang xử lý';
-    else if (currentStatus === 'Đang xử lý') nextStatus = 'Đang giao';
-    else if (currentStatus === 'Đang giao') nextStatus = 'Đã giao';
-    else {
-      Alert.alert('Thông báo', 'Đơn hàng này đã giao thành công hoàn tất!');
-      return;
+  const executeStatusUpdate = async (orderId: number, nextStatus: string) => {
+    try {
+      await api.put(`/don-hang/${orderId}/status`, { trang_thai_don_hang: nextStatus });
+      Alert.alert('Thành công', `Cập nhật trạng thái đơn hàng #${orderId} thành "${nextStatus}" thành công!`);
+      loadData();
+    } catch (err: any) {
+      // Cập nhật local dự phòng nếu API Offline
+      setOrders(prev =>
+        sortOrders(prev.map(o => (o.id === orderId ? { ...o, trang_thai_don_hang: nextStatus } : o)))
+      );
+      Alert.alert('Thành công', `Đã cập nhật trạng thái đơn hàng #${orderId} thành "${nextStatus}" (Chế độ Offline)`);
     }
+  };
 
-    Alert.alert(
-      'Cập nhật trạng thái',
-      `Bạn có muốn chuyển đơn hàng #${orderId} sang "${nextStatus}"?`,
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Đồng ý',
-          onPress: async () => {
-            try {
-              await api.put(`/don-hang/${orderId}/status`, { trang_thai_don_hang: nextStatus });
-              Alert.alert('Thành công', 'Cập nhật trạng thái đơn hàng thành công!');
-              loadData();
-            } catch (err: any) {
-              // Cập nhật local dự phòng nếu API Offline
-              setOrders(prev =>
-                prev.map(o => (o.id === orderId ? { ...o, trang_thai_don_hang: nextStatus } : o))
-              );
-              Alert.alert('Thành công', `Đã cập nhật trạng thái đơn hàng #${orderId} thành ${nextStatus} (Chế độ Offline)`);
-            }
+  const handleUpdateStatus = async (orderId: number, currentStatus: string) => {
+    if (currentStatus === 'Chờ xác nhận' || currentStatus === 'Chờ thanh toán') {
+      Alert.alert(
+        'Duyệt / Hủy Đơn Hàng',
+        `Bạn muốn xử lý đơn hàng #${orderId} này như thế nào?`,
+        [
+          { text: 'Quay lại', style: 'cancel' },
+          { 
+            text: '❌ Hủy đơn', 
+            style: 'destructive', 
+            onPress: () => executeStatusUpdate(orderId, 'Đã hủy') 
+          },
+          { 
+            text: '✅ Duyệt đơn', 
+            onPress: () => executeStatusUpdate(orderId, 'Đang xử lý') 
           }
-        }
-      ]
-    );
+        ]
+      );
+    } else if (currentStatus === 'Đang xử lý') {
+      Alert.alert(
+        'Giao Đơn Hàng',
+        `Chuyển đơn hàng #${orderId} sang trạng thái giao hàng?`,
+        [
+          { text: 'Hủy', style: 'cancel' },
+          { 
+            text: '🚚 Bắt đầu giao', 
+            onPress: () => executeStatusUpdate(orderId, 'Đang giao') 
+          }
+        ]
+      );
+    } else if (currentStatus === 'Đang giao') {
+      Alert.alert(
+        'Cập nhật kết quả giao hàng',
+        `Đơn hàng #${orderId} đang được giao. Hãy chọn kết quả giao hàng:`,
+        [
+          { text: 'Quay lại', style: 'cancel' },
+          { 
+            text: '❌ Giao thất bại', 
+            style: 'destructive', 
+            onPress: () => executeStatusUpdate(orderId, 'Giao thất bại') 
+          },
+          { 
+            text: '✅ Giao thành công', 
+            onPress: () => executeStatusUpdate(orderId, 'Đã giao') 
+          }
+        ]
+      );
+    } else {
+      Alert.alert('Thông báo', 'Đơn hàng này đã kết thúc!');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -119,7 +175,21 @@ export default function AdminDashboardScreen() {
       case 'Đã giao': return { text: '#22c55e', bg: '#f0fdf4' };
       case 'Đang giao': return { text: '#3b82f6', bg: '#eff6ff' };
       case 'Đang xử lý': return { text: '#eab308', bg: '#fefcbf' };
-      default: return { text: '#ef4444', bg: '#fef2f2' };
+      case 'Giao thất bại': return { text: '#ef4444', bg: '#fef2f2' };
+      case 'Đã hủy': return { text: '#6b7280', bg: '#f3f4f6' };
+      default: return { text: '#6b7280', bg: '#f3f4f6' };
+    }
+  };
+
+  const getAlertIcon = (type: string) => {
+    switch (type) {
+      case 'order': return { name: 'cube', color: '#f59e0b', bg: '#fef3c7' };
+      case 'order_success': return { name: 'checkmark-circle', color: '#10b981', bg: '#ecfdf5' };
+      case 'stock': return { name: 'warning', color: '#ef4444', bg: '#fef2f2' };
+      case 'new_product': return { name: 'leaf', color: '#3b82f6', bg: '#eff6ff' };
+      case 'feedback': return { name: 'chatbubbles', color: '#8b5cf6', bg: '#f5f3ff' };
+      case 'review': return { name: 'star', color: '#d97706', bg: '#fffbeb' };
+      default: return { name: 'notifications', color: '#6b7280', bg: '#f3f4f6' };
     }
   };
 
@@ -191,26 +261,73 @@ export default function AdminDashboardScreen() {
 
               {/* Quick Actions Panel */}
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Thao tác quản lý nhanh ⚡</Text>
-              <View style={styles.quickActions}>
-                <TouchableOpacity 
-                  style={[styles.actionBtn, { backgroundColor: colors.backgroundElement }]}
-                  onPress={() => router.push('/shop')}
-                >
-                  <View style={styles.actionIconWrap}>
-                    <Ionicons name="add-circle" size={22} color="#10b981" />
-                  </View>
-                  <Text style={[styles.actionText, { color: colors.text }]}>Xem danh sách SP</Text>
-                </TouchableOpacity>
+              <View style={{ gap: 12 }}>
+                <View style={styles.quickActions}>
+                  <TouchableOpacity 
+                    style={[styles.actionBtn, { backgroundColor: colors.backgroundElement }]}
+                    onPress={() => router.push('/admin/products')}
+                  >
+                    <View style={styles.actionIconWrap}>
+                      <Ionicons name="leaf" size={22} color="#10b981" />
+                    </View>
+                    <Text style={[styles.actionText, { color: colors.text }]}>Quản lý sản phẩm</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.actionBtn, { backgroundColor: colors.backgroundElement }]}
+                    onPress={() => setActiveTab('orders')}
+                  >
+                    <View style={styles.actionIconWrap}>
+                      <Ionicons name="checkbox" size={22} color="#d97706" />
+                    </View>
+                    <Text style={[styles.actionText, { color: colors.text }]}>Duyệt nhanh đơn hàng</Text>
+                  </TouchableOpacity>
+                </View>
 
                 <TouchableOpacity 
-                  style={[styles.actionBtn, { backgroundColor: colors.backgroundElement }]}
-                  onPress={() => setActiveTab('orders')}
+                  style={[styles.actionBtn, { backgroundColor: colors.backgroundElement, flex: 0 }]}
+                  onPress={() => router.push('/admin/announcements')}
                 >
-                  <View style={styles.actionIconWrap}>
-                    <Ionicons name="checkbox" size={22} color="#d97706" />
+                  <View style={[styles.actionIconWrap, { backgroundColor: '#eff6ff' }]}>
+                    <Ionicons name="megaphone" size={22} color="#2563eb" />
                   </View>
-                  <Text style={[styles.actionText, { color: colors.text }]}>Duyệt nhanh đơn hàng</Text>
+                  <Text style={[styles.actionText, { color: colors.text }]}>Đăng thông báo tới toàn khách hàng</Text>
                 </TouchableOpacity>
+              </View>
+
+              {/* Live Alerts */}
+              <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>🔔 Cảnh báo & Hoạt động Live</Text>
+              <View style={{ gap: 10 }}>
+                {adminNotifs.length === 0 ? (
+                  <Text style={[styles.emptyText, { color: colors.textSecondary, marginVertical: 12 }]}>Chưa có hoạt động hay cảnh báo mới.</Text>
+                ) : (
+                  adminNotifs.map((alert: any) => {
+                    const icon = getAlertIcon(alert.type);
+                    const d = new Date(alert.time);
+                    const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+                    return (
+                      <View 
+                        key={alert.id} 
+                        style={[
+                          styles.alertItem, 
+                          { 
+                            backgroundColor: colors.backgroundElement,
+                            borderColor: alert.unread ? '#10b981' : 'transparent',
+                            borderWidth: alert.unread ? 1 : 0
+                          }
+                        ]}
+                      >
+                        <View style={[styles.alertIconCircle, { backgroundColor: icon.bg }]}>
+                          <Ionicons name={icon.name as any} size={18} color={icon.color} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.alertText, { color: colors.text, fontWeight: alert.unread ? '700' : '500' }]}>{alert.text}</Text>
+                          <Text style={styles.alertTime}>{timeStr}</Text>
+                        </View>
+                      </View>
+                    );
+                  })
+                )}
               </View>
             </View>
           )}
@@ -239,14 +356,14 @@ export default function AdminDashboardScreen() {
                         <Text style={styles.orderPriceText}>💰 Giá trị: {item.tong_tien_hang?.toLocaleString()}đ</Text>
                       </View>
 
-                      {item.trang_thai_don_hang !== 'Đã giao' && (
+                      {item.trang_thai_don_hang !== 'Đã giao' && item.trang_thai_don_hang !== 'Giao thất bại' && item.trang_thai_don_hang !== 'Đã hủy' && (
                         <TouchableOpacity 
                           style={styles.approveBtn} 
                           onPress={() => handleUpdateStatus(item.id, item.trang_thai_don_hang)}
                         >
                           <Ionicons name="checkmark-circle-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
                           <Text style={styles.approveBtnText}>
-                            {item.trang_thai_don_hang === 'Chờ xác nhận' ? 'Xác nhận đơn' : 'Cập nhật trạng thái'}
+                            {item.trang_thai_don_hang === 'Chờ xác nhận' || item.trang_thai_don_hang === 'Chờ thanh toán' ? 'Xác nhận đơn' : 'Cập nhật trạng thái'}
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -504,5 +621,34 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     color: '#ef4444',
+  },
+  alertItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 14,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  alertIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  alertText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  alertTime: {
+    fontSize: 10,
+    color: '#9ca3af',
+    fontWeight: '500',
+    marginTop: 2,
   },
 });

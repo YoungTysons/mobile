@@ -10,11 +10,11 @@ const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
  */
 router.get('/admin', verifyToken, requireAdmin, async (req, res) => {
     try {
-        // 1. Quét Đơn hàng mới (Chờ xác nhận, Chờ thanh toán)
+        // 1. Quét Đơn hàng mới & giao thành công
         const ordersRes = await query(`
             SELECT id, ngay_dat, trang_thai_don_hang 
             FROM DonHang 
-            WHERE trang_thai_don_hang IN (N'Chờ xác nhận', N'Chờ thanh toán')
+            WHERE trang_thai_don_hang IN (N'Chờ xác nhận', N'Chờ thanh toán', N'Đã giao')
             ORDER BY ngay_dat DESC
         `);
 
@@ -43,15 +43,28 @@ router.get('/admin', verifyToken, requireAdmin, async (req, res) => {
             ORDER BY dg.ngay_viet DESC
         `);
 
+        // 5. Quét Sản phẩm mới thêm trong vòng 7 ngày qua
+        const newProductsRes = await query(`
+            SELECT id, ten_san_pham, ngay_tao 
+            FROM SanPham 
+            WHERE ngay_tao >= DATEADD(day, -7, GETDATE())
+            ORDER BY ngay_tao DESC
+        `);
+
         // --- MAP VÀ ĐỊNH DẠNG DỮ LIỆU ĐỒNG NHẤT ---
-        const orderNotifications = ordersRes.recordset.map(item => ({
-            id: `order-${item.id}`,
-            type: 'order',
-            text: `Đơn hàng mới #${item.id} cần xác nhận`,
-            time: item.ngay_dat,
-            unread: true,
-            link: '/admin/orders'
-        }));
+        const orderNotifications = ordersRes.recordset.map(item => {
+            const isDelivered = item.trang_thai_don_hang === 'Đã giao';
+            return {
+                id: `order-${item.id}-${item.trang_thai_don_hang}`,
+                type: isDelivered ? 'order_success' : 'order',
+                text: isDelivered 
+                    ? `Đơn hàng #${item.id} đã được giao thành công ✅` 
+                    : `Đơn hàng mới #${item.id} cần xác nhận`,
+                time: item.ngay_dat,
+                unread: !isDelivered,
+                link: '/admin/orders'
+            };
+        });
 
         const stockNotifications = stockRes.recordset.map(item => ({
             id: `stock-${item.id}`,
@@ -83,12 +96,22 @@ router.get('/admin', verifyToken, requireAdmin, async (req, res) => {
             };
         });
 
+        const newProductNotifications = newProductsRes.recordset.map(item => ({
+            id: `newproduct-${item.id}`,
+            type: 'new_product',
+            text: `Sản phẩm mới "${item.ten_san_pham}" vừa được thêm! 🌱`,
+            time: item.ngay_tao,
+            unread: true,
+            link: '/admin/inventory'
+        }));
+
         // Ghép tất cả các loại thông báo lại
         let allNotifications = [
             ...orderNotifications,
             ...stockNotifications,
             ...feedbackNotifications,
-            ...reviewNotifications
+            ...reviewNotifications,
+            ...newProductNotifications
         ];
 
         // Sắp xếp theo thứ tự thời gian giảm dần
@@ -152,6 +175,35 @@ router.put('/:id/read', verifyToken, async (req, res) => {
         await query(sql, { id: req.params.id, id_user: req.user.id });
         res.json({ success: true, message: 'Đã đọc thông báo' });
     } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * @route   POST /api/notifications/announce
+ * @desc    Admin đăng bài thông báo đồng loạt gửi tới tất cả người dùng
+ * @access  Private (Admin Only)
+ */
+router.post('/announce', verifyToken, requireAdmin, async (req, res) => {
+    const { tieu_de, noi_dung } = req.body;
+
+    if (!tieu_de || !noi_dung) {
+        return res.status(400).json({ success: false, message: 'Tiêu đề và nội dung là bắt buộc!' });
+    }
+
+    try {
+        // Insert hàng loạt thông báo cho tất cả người dùng có vai_tro là 'Khách hàng' hoặc trống
+        const sqlInsert = `
+            INSERT INTO ThongBao (id_nguoi_dung, tieu_de, noi_dung, loai, da_doc, ngay_tao)
+            SELECT id, @tieu_de, @noi_dung, 'promo', 0, GETUTCDATE()
+            FROM NguoiDung
+            WHERE vai_tro = N'Khách hàng' OR vai_tro IS NULL OR vai_tro = ''
+        `;
+        await query(sqlInsert, { tieu_de, noi_dung });
+
+        res.json({ success: true, message: 'Đã gửi thông báo tới tất cả người dùng thành công!' });
+    } catch (error) {
+        console.error('❌ Lỗi đăng thông báo hàng loạt:', error.message);
         res.status(500).json({ success: false, message: error.message });
     }
 });

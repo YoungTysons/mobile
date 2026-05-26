@@ -8,10 +8,14 @@ import {
   useColorScheme,
   Platform,
   Image,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/theme';
+import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 interface Notification {
   id: number;
@@ -104,21 +108,133 @@ export default function NotificationsScreen() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
   const isDark = scheme === 'dark';
+  const { currentUser } = useAuth();
 
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const loadNotifications = async () => {
+    try {
+      // 1. Lấy thông báo cá nhân/khuyến mãi của user
+      const res = await api.get('/notifications');
+      let personalNotifs = [];
+      if (res.data && res.data.success) {
+        personalNotifs = res.data.data.map((item: any) => {
+          let type: 'order' | 'promo' | 'system' | 'review' = 'system';
+          if (item.loai === 'DonHang') type = 'order';
+          else if (item.loai === 'promo') type = 'promo';
+          else if (item.loai === 'system') type = 'system';
+
+          return {
+            id: `personal-${item.id}`,
+            dbId: item.id,
+            type,
+            title: item.tieu_de,
+            message: item.noi_dung,
+            time: new Date(item.ngay_tao),
+            read: !!item.da_doc,
+            isAdminAlert: false
+          };
+        });
+      }
+
+      // 2. Lấy thêm thông báo quản trị live nếu user có vai trò Admin
+      let adminNotifs = [];
+      if (currentUser && (currentUser.la_admin || currentUser.vai_tro?.includes('Admin'))) {
+        const adminRes = await api.get('/notifications/admin').catch(() => null);
+        if (adminRes && adminRes.data && adminRes.data.success) {
+          adminNotifs = adminRes.data.data.map((item: any) => {
+            let type: 'order' | 'promo' | 'system' | 'review' = 'system';
+            if (item.type === 'order' || item.type === 'order_success') type = 'order';
+            else if (item.type === 'stock') type = 'system';
+            else if (item.type === 'feedback') type = 'system';
+            else if (item.type === 'review') type = 'review';
+
+            return {
+              id: `admin-${item.id}`,
+              type,
+              title: item.type === 'order' ? '🛒 Đơn hàng mới!' : 
+                     item.type === 'order_success' ? '✅ Giao thành công!' :
+                     item.type === 'stock' ? '⚠️ Cảnh báo tồn kho!' :
+                     item.type === 'feedback' ? '💬 Phản hồi mới!' : '⭐ Đánh giá mới!',
+              message: item.text,
+              time: new Date(item.time),
+              read: !item.unread, // unread === true nghĩa là read === false
+              isAdminAlert: true
+            };
+          });
+        }
+      }
+
+      // 3. Ghép và sắp xếp giảm dần theo thời gian
+      const combined = [...adminNotifs, ...personalNotifs];
+      combined.sort((a, b) => b.time.getTime() - a.time.getTime());
+
+      // 4. Format thời gian hiển thị
+      const formatted = combined.map(item => {
+        const timeStr = item.time.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + item.time.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+        return {
+          ...item,
+          time: timeStr
+        };
+      });
+
+      setNotifications(formatted);
+    } catch (err) {
+      console.log('Lỗi tải thông báo từ API:', err);
+      // Fallback sang mock nếu bị lỗi
+      setNotifications(MOCK_NOTIFICATIONS);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const markRead = (id: number) => {
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, read: true } : n))
-    );
+  useEffect(() => {
+    loadNotifications();
+  }, [currentUser]); // Nạp lại khi user đăng nhập/thay đổi trạng thái
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadNotifications();
+    setRefreshing(false);
   };
 
-  const renderNotification = (item: Notification) => {
+  const markAllRead = async () => {
+    try {
+      await api.put('/notifications/read-all');
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (err) {
+      console.log('Lỗi đọc tất cả:', err);
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    }
+  };
+
+  const markRead = async (item: any) => {
+    if (item.isAdminAlert) {
+      // Đối với thông báo quản trị live, đánh dấu đã đọc cục bộ
+      setNotifications(prev =>
+        prev.map(n => (n.id === item.id ? { ...n, read: true } : n))
+      );
+      return;
+    }
+
+    try {
+      await api.put(`/notifications/${item.dbId}/read`);
+      setNotifications(prev =>
+        prev.map(n => (n.id === item.id ? { ...n, read: true } : n))
+      );
+    } catch (err) {
+      console.log('Lỗi đọc thông báo:', err);
+      setNotifications(prev =>
+        prev.map(n => (n.id === item.id ? { ...n, read: true } : n))
+      );
+    }
+  };
+
+  const renderNotification = (item: any) => {
     const icon = getTypeIcon(item.type);
 
     return (
@@ -135,7 +251,7 @@ export default function NotificationsScreen() {
               : (isDark ? '#166534' : '#bbf7d0'),
           },
         ]}
-        onPress={() => markRead(item.id)}
+        onPress={() => markRead(item)}
         activeOpacity={0.8}
       >
         {/* Chấm xanh chưa đọc */}
@@ -197,32 +313,42 @@ export default function NotificationsScreen() {
       </View>
 
       {/* Danh sách thông báo */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-      >
-        {/* Phần chưa đọc */}
-        {unreadCount > 0 && (
-          <>
-            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>MỚI</Text>
-            {notifications.filter(n => !n.read).map(renderNotification)}
-          </>
-        )}
-
-        {/* Phần đã đọc */}
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: unreadCount > 0 ? 20 : 0 }]}>
-          TRƯỚC ĐÓ
-        </Text>
-        {notifications.filter(n => n.read).map(renderNotification)}
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Ionicons name="checkmark-circle" size={36} color={isDark ? '#374151' : '#d1d5db'} />
-          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-            Bạn đã xem hết thông báo
-          </Text>
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#10b981" />
+          <Text style={{ marginTop: 10, color: colors.textSecondary, fontSize: 14 }}>Đang tải thông báo...</Text>
         </View>
-      </ScrollView>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#10b981']} />
+          }
+        >
+          {/* Phần chưa đọc */}
+          {unreadCount > 0 && (
+            <>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>MỚI</Text>
+              {notifications.filter(n => !n.read).map(renderNotification)}
+            </>
+          )}
+
+          {/* Phần đã đọc */}
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: unreadCount > 0 ? 20 : 0 }]}>
+            TRƯỚC ĐÓ
+          </Text>
+          {notifications.filter(n => n.read).map(renderNotification)}
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Ionicons name="checkmark-circle" size={36} color={isDark ? '#374151' : '#d1d5db'} />
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+              Bạn đã xem hết thông báo
+            </Text>
+          </View>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

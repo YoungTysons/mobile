@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // - Android Emulator: sử dụng 10.0.2.2 để kết nối máy chủ host.
 // - iOS Simulator / Web: sử dụng localhost.
 // - Thiết bị thật chạy Expo Go: Thay thế bằng IP nội mạng của máy tính bạn (ví dụ: 'http://192.168.1.50:5000')
-export const BASE_URL = 'http://192.168.1.45:5000';
+export const BASE_URL = 'http://192.168.27.105:5000';
 
 export const API_URL = `${BASE_URL}/api`;
 

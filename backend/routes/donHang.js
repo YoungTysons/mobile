@@ -30,6 +30,7 @@ router.get('/', async (req, res) => {
       SELECT 
         d.*, 
         n.ho_ten AS ten_khach, 
+        n.ho_ten AS ho_ten, 
         n.email,
         n.so_dien_thoai,
         (
@@ -66,6 +67,49 @@ router.get('/my-orders', verifyToken, async (req, res) => {
   } catch (err) {
     console.error('Fetch My Orders Error:', err)
     res.status(500).json({ message: 'Lỗi khi lấy danh sách đơn hàng' })
+  }
+})
+
+// ─────────────────────────────────────────────────
+// 2b. GET /api/don-hang/:id/details - Xem chi tiết các sản phẩm trong đơn hàng
+// ─────────────────────────────────────────────────
+router.get('/:id/details', verifyToken, async (req, res) => {
+  const orderId = req.params.id
+  const userId = req.user.id
+  const isAdmin = req.user.la_admin || req.user.vai_tro === 'Admin'
+
+  try {
+    // 1. Kiểm tra đơn hàng có tồn tại và thuộc về user hay không
+    const checkOrder = await query("SELECT id_nguoi_dung FROM DonHang WHERE id = @orderId", { orderId })
+    if (checkOrder.recordset.length === 0) {
+      return res.status(404).json({ success: false, message: 'Đơn hàng không tồn tại!' })
+    }
+
+    if (!isAdmin && checkOrder.recordset[0].id_nguoi_dung !== userId) {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền xem chi tiết đơn hàng này!' })
+    }
+
+    // 2. Truy vấn danh sách chi tiết các cây cảnh đã đặt
+    const items = await query(`
+      SELECT 
+        c.id,
+        c.id_san_pham,
+        c.so_luong,
+        c.gia_don_vi,
+        s.ten_san_pham,
+        s.anh_bia
+      FROM ChiTietDonHang c
+      INNER JOIN SanPham s ON c.id_san_pham = s.id
+      WHERE c.id_don_hang = @orderId
+    `, { orderId })
+
+    res.json({
+      success: true,
+      data: items.recordset
+    })
+  } catch (err) {
+    console.error('Lỗi lấy chi tiết đơn hàng:', err.message)
+    res.status(500).json({ success: false, message: err.message })
   }
 })
 
@@ -270,7 +314,7 @@ router.post('/checkout', verifyToken, async (req, res) => {
 // 3. [ADMIN] PUT /api/don-hang/:id/status - Cập nhật trạng thái
 // ─────────────────────────────────────────────────
 router.put('/:id/status', async (req, res) => {
-  const { status } = req.body
+  const status = req.body.status || req.body.trang_thai_don_hang
   const id = req.params.id
   console.log(`[Admin] Cập nhật trạng thái đơn hàng ${id} thành: ${status}`)
 

@@ -115,4 +115,24 @@ function getStatusColor(status) {
   }
 }
 
+// GET /api/thong-ke/tong-quan
+router.get('/tong-quan', async (req, res) => {
+  try {
+    const [revenueRes, ordersRes, productsRes] = await Promise.all([
+      query(`SELECT ISNULL(SUM(tong_tien_hang), 0) as total FROM DonHang WHERE trang_thai_don_hang != N'Đã hủy'`),
+      query(`SELECT COUNT(*) as count FROM DonHang`),
+      query(`SELECT COUNT(*) as count FROM SanPham`)
+    ]);
+
+    res.json({
+      tongDoanhThu: revenueRes.recordset[0].total,
+      tongDonHang: ordersRes.recordset[0].count,
+      tongSanPham: productsRes.recordset[0].count
+    });
+  } catch (err) {
+    console.error("Lỗi lấy tổng quan thống kê:", err.message);
+    res.status(500).json({ error: "Lỗi hệ thống khi lấy dữ liệu tổng quan" });
+  }
+});
+
 module.exports = router;

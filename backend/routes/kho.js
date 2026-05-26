@@ -34,4 +34,20 @@ router.patch('/:id', async (req, res) => {
   }
 })
 
+// GET /api/kho/ton-kho-thap
+router.get('/ton-kho-thap', async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT id, ten_san_pham, ma_sku, so_luong_kho 
+      FROM SanPham 
+      WHERE so_luong_kho < 10 OR so_luong_kho <= so_luong_toi_thieu
+      ORDER BY so_luong_kho ASC
+    `)
+    res.json(result.recordset)
+  } catch (err) {
+    console.error("Lỗi lấy tồn kho thấp:", err.message);
+    res.status(500).json({ error: 'Lỗi lấy dữ liệu cảnh báo tồn kho' })
+  }
+})
+
 module.exports = router

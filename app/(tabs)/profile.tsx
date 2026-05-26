@@ -164,8 +164,7 @@ export default function ProfileScreen() {
 
             {renderOptionItem('bag-handle-outline', 'Đơn hàng của tôi', () => {
               if (currentUser) {
-                // Show order history
-                alert(`Bạn đang có ${orders.length} đơn hàng. Lịch sử đặt hàng chi tiết sẽ hiển thị tại đây!`);
+                router.push('/orders/my-orders');
               } else {
                 router.push('/login');
               }
@@ -175,16 +174,18 @@ export default function ProfileScreen() {
               alert('Tính năng danh sách yêu thích đang phát triển! ❤️');
             })}
 
-            {renderOptionItem('medal-outline', 'Gói thành viên của tôi', () => {
-              router.push('/membership');
-            })}
+            {!(currentUser && (currentUser.vai_tro?.includes('Admin') || currentUser.la_admin)) && 
+              renderOptionItem('medal-outline', 'Gói thành viên của tôi', () => {
+                router.push('/membership');
+              })
+            }
 
             {renderOptionItem('location-outline', 'Địa chỉ giao hàng', () => {
-              alert('Tính năng sổ địa chỉ sẽ ra mắt ở phiên bản tiếp theo! 🏡');
-            })}
-
-            {renderOptionItem('chatbubble-ellipses-outline', 'Trợ lý AI cây cảnh', () => {
-              router.push('/chatbot');
+              if (currentUser) {
+                router.push('/profile/address');
+              } else {
+                router.push('/login');
+              }
             })}
           </View>
         </View>
