@@ -15,13 +15,14 @@ import {
   KeyboardAvoidingView,
   ActivityIndicator,
   Image,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/theme';
 import api from '../../services/api';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const CHAT_HEIGHT = SCREEN_HEIGHT * 0.7;
+const CHAT_HEIGHT = SCREEN_HEIGHT * 0.78;
 
 interface Message {
   role: 'user' | 'model';
@@ -45,6 +46,33 @@ export default function TabLayout() {
   const [chatOpen, setChatOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(CHAT_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
+
+  // ── Keyboard height state for dynamic resizing ──
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
+  const currentPanelHeight = keyboardHeight > 0 
+    ? Math.min(CHAT_HEIGHT, SCREEN_HEIGHT - keyboardHeight - (Platform.OS === 'ios' ? 40 : 20))
+    : CHAT_HEIGHT;
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -249,47 +277,50 @@ export default function TabLayout() {
             <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeChat} />
           </Animated.View>
 
-          {/* Panel chat trượt từ dưới lên */}
-          <Animated.View
-            style={[
-              styles.chatPanel,
-              {
-                height: CHAT_HEIGHT,
-                backgroundColor: isDark ? '#111' : '#ffffff',
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
+          {/* KeyboardAvoidingView bao bọc toàn bộ Panel trượt để tự động dịch chuyển thông minh */}
+          <KeyboardAvoidingView
+            style={[StyleSheet.absoluteFill, { justifyContent: 'flex-end' }]}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={0}
+            pointerEvents="box-none"
           >
-            {/* ── Chat Header ── */}
-            <View style={[styles.chatHeader, { borderBottomColor: isDark ? '#222' : '#f1f5f9' }]}>
-              {/* Thanh kéo */}
-              <View style={[styles.dragHandle, { backgroundColor: isDark ? '#444' : '#d1d5db' }]} />
-
-              <View style={styles.chatHeaderRow}>
-                <View style={styles.botProfile}>
-                  <View style={styles.botAvatarWrap}>
-                    <Image
-                      source={{ uri: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=200' }}
-                      style={styles.botAvatar}
-                    />
-                    <View style={styles.activeIndicator} />
-                  </View>
-                  <View>
-                    <Text style={[styles.botName, { color: colors.text }]}>Trợ lý Aether 🌿</Text>
-                    <Text style={styles.botStatus}>Đang trực tuyến</Text>
-                  </View>
-                </View>
-                <TouchableOpacity onPress={closeChat} style={styles.closeBtn}>
-                  <Ionicons name="close" size={20} color={colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* ── Messages ── */}
-            <KeyboardAvoidingView
-              style={{ flex: 1 }}
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            {/* Panel chat trượt từ dưới lên với chiều cao động tránh tràn viền */}
+            <Animated.View
+              style={[
+                styles.chatPanel,
+                {
+                  height: currentPanelHeight,
+                  backgroundColor: isDark ? '#111' : '#ffffff',
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
             >
+              {/* ── Chat Header ── */}
+              <View style={[styles.chatHeader, { borderBottomColor: isDark ? '#222' : '#f1f5f9' }]}>
+                {/* Thanh kéo */}
+                <View style={[styles.dragHandle, { backgroundColor: isDark ? '#444' : '#d1d5db' }]} />
+
+                <View style={styles.chatHeaderRow}>
+                  <View style={styles.botProfile}>
+                    <View style={styles.botAvatarWrap}>
+                      <Image
+                        source={{ uri: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=200' }}
+                        style={styles.botAvatar}
+                      />
+                      <View style={styles.activeIndicator} />
+                    </View>
+                    <View>
+                      <Text style={[styles.botName, { color: colors.text }]}>Trợ lý Aether 🌿</Text>
+                      <Text style={styles.botStatus}>Đang trực tuyến</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity onPress={closeChat} style={styles.closeBtn}>
+                    <Ionicons name="close" size={20} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* ── Messages ── */}
               <ScrollView
                 ref={scrollRef}
                 style={styles.chatScroll}
@@ -357,8 +388,8 @@ export default function TabLayout() {
                   <Ionicons name="send" size={16} color="#ffffff" />
                 </TouchableOpacity>
               </View>
-            </KeyboardAvoidingView>
-          </Animated.View>
+            </Animated.View>
+          </KeyboardAvoidingView>
         </View>
       )}
     </View>
@@ -449,10 +480,7 @@ const styles = StyleSheet.create({
 
   // ── Chat Panel ──
   chatPanel: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    width: '100%',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
@@ -584,7 +612,9 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 14,
     borderTopWidth: 1,
     gap: 10,
   },
