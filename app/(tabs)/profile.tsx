@@ -196,7 +196,7 @@ export default function ProfileScreen() {
 
             {!(currentUser && (currentUser.vai_tro?.includes('Admin') || currentUser.la_admin)) &&  
               renderOptionItem('medal-outline', 'Gói thành viên của tôi', () => {
-                router.push('/membership');
+                router.push('/profile/my-membership');
               })
             }
           </View>
