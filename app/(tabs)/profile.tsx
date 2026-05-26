@@ -10,6 +10,7 @@ import {
   useColorScheme,
   Dimensions,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -52,13 +53,29 @@ export default function ProfileScreen() {
     }
   }, [currentUser]);
 
-  const handleLogout = async () => {
-    await logout();
-    router.replace('/');
+  const handleLogout = () => {
+    const performLogout = async () => {
+      await logout();
+      router.replace('/');
+    };
+
+    if (Platform.OS === 'web') {
+      if (confirm('Bạn có chắc chắn muốn đăng xuất tài khoản?')) {
+        performLogout();
+      }
+    } else {
+      Alert.alert(
+        'Đăng xuất 👤',
+        'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này?',
+        [
+          { text: 'Hủy', style: 'cancel' },
+          { text: 'Đăng xuất', style: 'destructive', onPress: performLogout }
+        ]
+      );
+    }
   };
 
-  // Render một mục lựa chọn trong danh sách tài khoản
-  const renderOptionItem = (icon: keyof typeof Ionicons.prototype.keys, title: string, onPress: () => void) => {
+  const renderOptionItem = (icon: any, title: string, onPress: () => void) => {
     return (
       <TouchableOpacity 
         style={[styles.optionItem, { backgroundColor: scheme === 'dark' ? '#1f2937' : '#ffffff' }]} 
@@ -153,10 +170,17 @@ export default function ProfileScreen() {
           <Text style={styles.menuHeader}>TÀI KHOẢN</Text>
           
           <View style={styles.menuList}>
-            {renderOptionItem('person-outline', 'Tài khoản của tôi', () => {
+            {renderOptionItem('person-outline', 'Hồ sơ của tôi', () => {
               if (currentUser) {
-                // Navigate to personal info (or show placeholder alert)
-                alert('Thông tin tài khoản sẽ sớm được cập nhật!');
+                router.push('/profile/address');
+              } else {
+                router.push('/login');
+              }
+            })}
+
+            {renderOptionItem('key-outline', 'Tài khoản của tôi', () => {
+              if (currentUser) {
+                router.push('/profile/account');
               } else {
                 router.push('/login');
               }
@@ -170,23 +194,11 @@ export default function ProfileScreen() {
               }
             })}
 
-            {renderOptionItem('heart-outline', 'Danh sách yêu thích', () => {
-              alert('Tính năng danh sách yêu thích đang phát triển! ❤️');
-            })}
-
-            {!(currentUser && (currentUser.vai_tro?.includes('Admin') || currentUser.la_admin)) && 
+            {!(currentUser && (currentUser.vai_tro?.includes('Admin') || currentUser.la_admin)) &&  
               renderOptionItem('medal-outline', 'Gói thành viên của tôi', () => {
                 router.push('/membership');
               })
             }
-
-            {renderOptionItem('location-outline', 'Địa chỉ giao hàng', () => {
-              if (currentUser) {
-                router.push('/profile/address');
-              } else {
-                router.push('/login');
-              }
-            })}
           </View>
         </View>
 

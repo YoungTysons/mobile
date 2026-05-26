@@ -1,6 +1,8 @@
 const express = require('express')
 const router = express.Router()
 const { query } = require('../db')
+const bcrypt = require('bcrypt')
+const SALT_ROUNDS = 10
 
 // GET /api/nguoi-dung - Lấy danh sách user (Admin) kèm số đơn hàng và tổng chi
 router.get('/', async (req, res) => {
@@ -68,8 +70,35 @@ router.get('/profile/:id', async (req, res) => {
 
 // PUT /api/nguoi-dung/profile/:id - Cập nhật hồ sơ
 router.put('/profile/:id', async (req, res) => {
-  const { ho_ten, so_dien_thoai, dia_chi, anh_dai_dien, so_cccd, ngay_sinh, gioi_tinh, que_quan } = req.body
+  const { ho_ten, so_dien_thoai, dia_chi, anh_dai_dien, so_cccd, ngay_sinh, gioi_tinh, que_quan, email, mat_khau, mat_khau_cu } = req.body
   try {
+    let mat_khau_hash = null
+    if (mat_khau) {
+      const matKhauTrimmed = mat_khau.trim()
+      if (matKhauTrimmed.length > 0) {
+        if (matKhauTrimmed.length < 6) {
+          return res.status(400).json({ error: 'Mật khẩu mới phải có ít nhất 6 ký tự!' })
+        }
+        if (!mat_khau_cu) {
+          return res.status(400).json({ error: 'Vui lòng cung cấp mật khẩu cũ để đổi mật khẩu mới!' })
+        }
+        
+        // Truy vấn mật khẩu hiện tại trong DB
+        const userRes = await query(`SELECT mat_khau_hash FROM NguoiDung WHERE id = @id`, { id: req.params.id })
+        if (!userRes.recordset.length) {
+          return res.status(404).json({ error: 'Không tìm thấy tài khoản.' })
+        }
+        
+        const existingHash = userRes.recordset[0].mat_khau_hash
+        const isMatch = await bcrypt.compare(mat_khau_cu, existingHash)
+        if (!isMatch) {
+          return res.status(400).json({ error: 'Mật khẩu cũ không chính xác!' })
+        }
+        
+        mat_khau_hash = await bcrypt.hash(matKhauTrimmed, SALT_ROUNDS)
+      }
+    }
+
     // Không lưu Base64 vào DB (quá lớn), chỉ lưu nếu là URL
     const anhToSave = (anh_dai_dien && !anh_dai_dien.startsWith('data:')) ? anh_dai_dien : null
 
@@ -82,7 +111,9 @@ router.put('/profile/:id', async (req, res) => {
         so_cccd        = CASE WHEN @so_cccd IS NOT NULL THEN @so_cccd ELSE so_cccd END,
         ngay_sinh      = CASE WHEN @ngay_sinh IS NOT NULL THEN @ngay_sinh ELSE ngay_sinh END,
         gioi_tinh      = CASE WHEN @gioi_tinh IS NOT NULL THEN @gioi_tinh ELSE gioi_tinh END,
-        que_quan       = CASE WHEN @que_quan IS NOT NULL THEN @que_quan ELSE que_quan END
+        que_quan       = CASE WHEN @que_quan IS NOT NULL THEN @que_quan ELSE que_quan END,
+        email          = CASE WHEN @email IS NOT NULL THEN @email ELSE email END,
+        mat_khau_hash  = CASE WHEN @mat_khau_hash IS NOT NULL THEN @mat_khau_hash ELSE mat_khau_hash END
       WHERE id = @id
     `, {
       id: req.params.id,
@@ -94,6 +125,8 @@ router.put('/profile/:id', async (req, res) => {
       ngay_sinh:      ngay_sinh       ? ngay_sinh              : null,
       gioi_tinh:      gioi_tinh       ? gioi_tinh              : null,
       que_quan:       que_quan        ? que_quan.trim()        : null,
+      email:          email           ? email.trim()           : null,
+      mat_khau_hash:  mat_khau_hash
     })
     res.json({ message: 'Cập nhật hồ sơ thành công!' })
   } catch (err) {

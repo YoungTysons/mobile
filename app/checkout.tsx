@@ -14,8 +14,9 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -25,13 +26,15 @@ export default function CheckoutScreen() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
   const router = useRouter();
+  const { type } = useLocalSearchParams<{ type?: string }>();
+  const isMembership = type === 'membership';
   
   const { cartItems, cartTotal, clearCart } = useCart();
   const { currentUser } = useAuth();
 
   const [name, setName] = useState(currentUser?.ho_ten || '');
   const [phone, setPhone] = useState(currentUser?.so_dien_thoai || '');
-  const [address, setAddress] = useState(currentUser?.dia_chi || '');
+  const [address, setAddress] = useState(isMembership ? 'Đăng ký nâng cấp Pro Online' : (currentUser?.dia_chi || ''));
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'VietQR'>('COD');
   
   const [loading, setLoading] = useState(false);
@@ -39,11 +42,24 @@ export default function CheckoutScreen() {
   const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
   const [payosQRData, setPayosQRData] = useState<any>(null);
 
+  const [nameError, setNameError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [addressError, setAddressError] = useState('');
+
+  const itemsToRender = isMembership ? [{
+    id: 9999,
+    ten_san_pham: 'Gói thành viên Pro (1 tháng)',
+    quantity: 1,
+    gia_ban: 99000
+  }] : cartItems;
+
+  const checkoutTotal = isMembership ? 99000 : cartTotal;
+
   // Tự động kiểm tra trạng thái thanh toán (Polling) mỗi 2 giây khi mở mã QR
   React.useEffect(() => {
     let intervalId: any;
 
-    if (showQRModal && createdOrderId) {
+    if (showQRModal && createdOrderId && !isMembership) {
       intervalId = setInterval(async () => {
         try {
           const res = await api.get(`/don-hang/status/${createdOrderId}`);
@@ -70,7 +86,7 @@ export default function CheckoutScreen() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [showQRModal, createdOrderId]);
+  }, [showQRModal, createdOrderId, isMembership]);
 
   // Tạo đường dẫn VietQR động dựa trên thông số đơn hàng
   // Tự động phân tích xem có PayOS dynamic QR hay offline fallback
@@ -83,19 +99,59 @@ export default function CheckoutScreen() {
     const bankId = 'MB'; // Ngân hàng Quân Đội
     const accountNo = '0366448294'; // Số tài khoản thụ hưởng thật của bạn
     const template = 'qr_only'; // Template gọn đẹp
-    const addInfo = `AETHER PAYMENT DH${orderId}`;
+    const addInfo = isMembership ? `AETHER UPGRADE PRO USER ${currentUser?.id || 'MEMBER'}` : `AETHER PAYMENT DH${orderId}`;
     const accountName = 'AETHER SHOP';
     
     return `https://img.vietqr.io/image/${bankId}-${accountNo}-${template}.png?amount=${amount}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(accountName)}`;
   };
 
   const handlePlaceOrder = async () => {
-    if (!name || !phone || !address) {
-      Alert.alert('Lỗi nhập liệu', 'Vui lòng điền đầy đủ họ tên, số điện thoại và địa chỉ nhận hàng.');
+    let hasError = false;
+    
+    if (!name.trim()) {
+      setNameError('Vui lòng điền họ và tên.');
+      hasError = true;
+    } else {
+      setNameError('');
+    }
+
+    if (!phone.trim()) {
+      setPhoneError('Vui lòng điền số điện thoại.');
+      hasError = true;
+    } else {
+      setPhoneError('');
+    }
+
+    if (!isMembership && !address.trim()) {
+      setAddressError('Vui lòng điền địa chỉ nhận hàng.');
+      hasError = true;
+    } else {
+      setAddressError('');
+    }
+
+    if (hasError) {
       return;
     }
 
     setLoading(true);
+
+    if (isMembership) {
+      // --- LUỒNG THANH TOÁN GÓI PRO ---
+      setTimeout(async () => {
+        setLoading(false);
+        if (paymentMethod === 'VietQR') {
+          const mockOrderId = Math.floor(Math.random() * 900000) + 100000;
+          setCreatedOrderId(mockOrderId);
+          setPayosQRData(null); // Sử dụng VietQR fallback tuyệt đẹp
+          setShowQRModal(true);
+        } else {
+          // COD / Kích hoạt Trial trực tiếp
+          await AsyncStorage.setItem('membershipTier', 'trial');
+          router.replace('/');
+        }
+      }, 1000);
+      return;
+    }
 
     const orderPayload = {
       cartItems: cartItems.map(item => ({
@@ -162,12 +218,15 @@ export default function CheckoutScreen() {
     }
   };
 
-  const handleConfirmQRTransfer = () => {
+  const handleConfirmQRTransfer = async () => {
     setShowQRModal(false);
-    clearCart();
-    Alert.alert('Thanh toán hoàn tất 🌿', `Hệ thống đã nhận được yêu cầu đối soát thanh toán đơn hàng #${createdOrderId}. Aether sẽ đóng gói và giao cây sớm cho bạn!`, [
-      { text: 'Trở về trang chủ', onPress: () => router.replace('/') }
-    ]);
+    if (isMembership) {
+      await AsyncStorage.setItem('membershipTier', 'pro');
+      router.replace('/');
+    } else {
+      clearCart();
+      router.replace('/');
+    }
   };
 
   return (
@@ -177,44 +236,77 @@ export default function CheckoutScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>Thanh toán đơn hàng 🌿</Text>
+        <Text style={[styles.title, { color: colors.text }]}>
+          {isMembership ? 'Nâng cấp tài khoản PRO 🌿' : 'Thanh toán đơn hàng 🌿'}
+        </Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Shipping Form */}
+        {/* Shipping / Subscription Form */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Thông tin nhận hàng</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            {isMembership ? 'Thông tin đăng ký hội viên' : 'Thông tin nhận hàng'}
+          </Text>
           
-          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Họ và tên người nhận</Text>
+          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Họ và tên</Text>
           <TextInput
-            style={[styles.input, { color: colors.text, backgroundColor: colors.backgroundElement }]}
-            placeholder="Nhập tên người nhận cây cảnh..."
+            style={[
+              styles.input, 
+              { color: colors.text, backgroundColor: colors.backgroundElement },
+              nameError ? { borderColor: '#ef4444', borderWidth: 1.5 } : null
+            ]}
+            placeholder="Nhập tên của bạn..."
             placeholderTextColor={colors.textSecondary}
             value={name}
-            onChangeText={setName}
+            onChangeText={(val) => {
+              setName(val);
+              if (val.trim()) setNameError('');
+            }}
           />
+          {nameError ? <Text style={styles.inlineErrorMsg}>{nameError}</Text> : null}
 
           <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Số điện thoại liên hệ</Text>
           <TextInput
-            style={[styles.input, { color: colors.text, backgroundColor: colors.backgroundElement }]}
-            placeholder="Nhập số điện thoại nhận hàng..."
+            style={[
+              styles.input, 
+              { color: colors.text, backgroundColor: colors.backgroundElement },
+              phoneError ? { borderColor: '#ef4444', borderWidth: 1.5 } : null
+            ]}
+            placeholder="Nhập số điện thoại đăng ký..."
             placeholderTextColor={colors.textSecondary}
             value={phone}
-            onChangeText={setPhone}
+            onChangeText={(val) => {
+              setPhone(val);
+              if (val.trim()) setPhoneError('');
+            }}
             keyboardType="phone-pad"
           />
+          {phoneError ? <Text style={styles.inlineErrorMsg}>{phoneError}</Text> : null}
 
-          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Địa chỉ giao hàng</Text>
-          <TextInput
-            style={[styles.input, styles.textArea, { color: colors.text, backgroundColor: colors.backgroundElement }]}
-            placeholder="Số nhà, tên đường, phường/xã, quận/huyện..."
-            placeholderTextColor={colors.textSecondary}
-            value={address}
-            onChangeText={setAddress}
-            multiline
-            numberOfLines={3}
-          />
+          {!isMembership && (
+            <>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Địa chỉ giao hàng</Text>
+              <TextInput
+                style={[
+                  styles.input, 
+                  styles.textArea, 
+                  { color: colors.text, backgroundColor: colors.backgroundElement },
+                  addressError ? { borderColor: '#ef4444', borderWidth: 1.5 } : null
+                ]}
+                placeholder="Số nhà, tên đường, phường/xã, quận/huyện..."
+                placeholderTextColor={colors.textSecondary}
+                value={address}
+                onChangeText={(val) => {
+                  setAddress(val);
+                  if (val.trim()) setAddressError('');
+                }}
+                multiline
+                numberOfLines={3}
+              />
+              {addressError ? <Text style={styles.inlineErrorMsg}>{addressError}</Text> : null}
+            </>
+          )}
         </View>
 
         {/* Payment Methods */}
@@ -232,10 +324,10 @@ export default function CheckoutScreen() {
             <Ionicons name="wallet-outline" size={22} color="#10b981" />
             <View style={styles.methodInfo}>
               <Text style={[styles.methodName, { color: colors.text }]}>
-                Thanh toán khi nhận hàng (COD)
+                {isMembership ? 'Kích hoạt thử nghiệm trực tuyến (Miễn phí 14 ngày đầu)' : 'Thanh toán khi nhận hàng (COD)'}
               </Text>
               <Text style={[styles.methodDesc, { color: colors.textSecondary }]}>
-                Giao hàng tận nơi, kiểm tra cây xanh tốt rồi mới trả tiền.
+                {isMembership ? 'Trải nghiệm ngay lập tức toàn bộ đặc quyền không mất phí.' : 'Giao hàng tận nơi, kiểm tra cây xanh tốt rồi mới trả tiền.'}
               </Text>
             </View>
             <View style={[styles.radio, paymentMethod === 'COD' && styles.radioActive]} />
@@ -252,10 +344,10 @@ export default function CheckoutScreen() {
             <Ionicons name="qr-code-outline" size={22} color="#10b981" />
             <View style={styles.methodInfo}>
               <Text style={[styles.methodName, { color: colors.text }]}>
-                Quét mã VietQR chuyển khoản (PayOS)
+                Quét mã VietQR chuyển khoản (MB Bank)
               </Text>
               <Text style={[styles.methodDesc, { color: colors.textSecondary }]}>
-                Chuyển khoản trực tiếp bằng mọi App Ngân hàng (Miễn phí ship).
+                {isMembership ? 'Chuyển khoản trực tiếp 99k kích hoạt tài khoản PRO trọn đời.' : 'Chuyển khoản trực tiếp bằng mọi App Ngân hàng (Miễn phí ship).'}
               </Text>
             </View>
             <View style={[styles.radio, paymentMethod === 'VietQR' && styles.radioActive]} />
@@ -264,8 +356,8 @@ export default function CheckoutScreen() {
 
         {/* Products Summary */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Tóm tắt đơn hàng</Text>
-          {cartItems.map((item) => (
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Tóm tắt dịch vụ</Text>
+          {itemsToRender.map((item) => (
             <View key={item.id} style={styles.summaryItem}>
               <Text numberOfLines={1} style={[styles.summaryItemName, { color: colors.text }]}>
                 {item.ten_san_pham} x {item.quantity}
@@ -278,7 +370,7 @@ export default function CheckoutScreen() {
           <View style={[styles.divider, { backgroundColor: colors.backgroundElement }]} />
           <View style={styles.summaryItem}>
             <Text style={[styles.totalLabel, { color: colors.text }]}>Tổng thanh toán:</Text>
-            <Text style={styles.totalValue}>{cartTotal.toLocaleString()}đ</Text>
+            <Text style={styles.totalValue}>{checkoutTotal.toLocaleString()}đ</Text>
           </View>
         </View>
       </ScrollView>
@@ -293,7 +385,11 @@ export default function CheckoutScreen() {
           {loading ? (
             <ActivityIndicator size="small" color="#ffffff" />
           ) : (
-            <Text style={styles.submitOrderText}>Đặt hàng ngay (Tổng {cartTotal.toLocaleString()}đ) 🌿</Text>
+            <Text style={styles.submitOrderText}>
+              {isMembership 
+                ? (paymentMethod === 'COD' ? 'Tiếp tục với tài khoản miễn phí 🌿' : `Xác nhận đăng ký PRO (${checkoutTotal.toLocaleString()}đ) ✨`)
+                : `Đặt hàng ngay (Tổng ${checkoutTotal.toLocaleString()}đ) 🌿`}
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -308,44 +404,37 @@ export default function CheckoutScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Cổng thanh toán VietQR 🌿</Text>
             <Text style={[styles.modalDesc, { color: colors.textSecondary }]}>
-              Vui lòng dùng ứng dụng ngân hàng quét mã QR dưới đây hoặc chuyển khoản đúng số tiền để hoàn thành đơn hàng #{createdOrderId}.
+              Vui lòng dùng ứng dụng ngân hàng quét mã QR dưới đây hoặc chuyển khoản đúng số tiền để hoàn thành nâng cấp dịch vụ.
             </Text>
 
             {createdOrderId && (
               <Image
-                source={{ uri: getVietQRUrl(createdOrderId, cartTotal) }}
+                source={{ uri: getVietQRUrl(createdOrderId, checkoutTotal) }}
                 style={styles.qrImage}
               />
             )}
 
              <View style={styles.paymentDetails}>
               <Text style={[styles.detailText, { color: colors.text }]}>
-                Ngân hàng: <Text style={{ fontWeight: '700' }}>{payosQRData ? 'VietinBank (PayOS)' : 'MB Bank (Quân Đội)'}</Text>
+                Ngân hàng: <Text style={{ fontWeight: '700' }}>MB Bank (Quân Đội)</Text>
               </Text>
               <Text style={[styles.detailText, { color: colors.text }]}>
-                Số tài khoản: <Text style={{ fontWeight: '700', color: '#10b981' }}>{payosQRData ? payosQRData.accountNumber : '0366448294'}</Text>
+                Số tài khoản: <Text style={{ fontWeight: '700', color: '#10b981' }}>0366448294</Text>
               </Text>
               <Text style={[styles.detailText, { color: colors.text }]}>
-                Chủ tài khoản: <Text style={{ fontWeight: '700' }}>{payosQRData ? payosQRData.accountName : 'AETHER SHOP'}</Text>
+                Chủ tài khoản: <Text style={{ fontWeight: '700' }}>AETHER SHOP</Text>
               </Text>
               <Text style={[styles.detailText, { color: colors.text }]}>
-                Số tiền: <Text style={{ fontWeight: '700', color: '#10b981' }}>{cartTotal.toLocaleString()}đ</Text>
+                Số tiền: <Text style={{ fontWeight: '700', color: '#10b981' }}>{checkoutTotal.toLocaleString()}đ</Text>
               </Text>
               <Text style={[styles.detailText, { color: colors.text }]}>
-                Nội dung chuyển khoản: <Text style={{ fontWeight: '700' }}>{payosQRData ? payosQRData.description : `AETHER PAYMENT DH${createdOrderId}`}</Text>
+                Nội dung chuyển khoản: <Text style={{ fontWeight: '700' }}>{isMembership ? `AETHER UPGRADE PRO USER ${currentUser?.id || 'MEMBER'}` : `AETHER PAYMENT DH${createdOrderId}`}</Text>
               </Text>
             </View>
 
-            {payosQRData?.checkoutUrl && (
-              <TouchableOpacity 
-                style={styles.webPayBtn} 
-                onPress={() => Linking.openURL(payosQRData.checkoutUrl).catch(() => {})}
-              >
-                <Text style={styles.webPayBtnText}>🌐 Thanh toán bằng thẻ Quốc tế / Ví khác</Text>
-              </TouchableOpacity>
-            )}
-
-
+            <TouchableOpacity style={styles.confirmTransferBtn} onPress={handleConfirmQRTransfer}>
+              <Text style={styles.confirmTransferText}>Tôi đã hoàn tất chuyển khoản</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.cancelModalBtn} onPress={() => setShowQRModal(false)}>
               <Text style={styles.cancelModalText}>Quay lại thay đổi thông tin</Text>
@@ -581,5 +670,12 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontSize: 13,
     fontWeight: '700',
+  },
+  inlineErrorMsg: {
+    color: '#ef4444',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+    marginLeft: 4,
   },
 });

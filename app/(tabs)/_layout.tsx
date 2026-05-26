@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import {
   useColorScheme,
   Platform,
@@ -32,10 +32,14 @@ export default function TabLayout() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
   const isDark = scheme === 'dark';
+  const pathname = usePathname();
 
   // Màu chủ đạo
   const activeColor = '#10b981';
   const inactiveColor = colors.textSecondary;
+
+  // Ẩn trợ lý AI ở màn hình cá nhân (profile) và admin
+  const hideFloatingAI = pathname.includes('/profile') || pathname.includes('/admin');
 
   // ── Chat overlay state ──
   const [chatOpen, setChatOpen] = useState(false);
@@ -224,7 +228,7 @@ export default function TabLayout() {
       </Tabs>
 
       {/* ══════════ NÚT NỔI TRỢ LÝ CÂY AI ══════════ */}
-      {!chatOpen && (
+      {!chatOpen && !hideFloatingAI && (
         <TouchableOpacity
           style={[
             styles.floatingAI,
@@ -238,7 +242,7 @@ export default function TabLayout() {
       )}
 
       {/* ══════════ CHAT OVERLAY 70% ══════════ */}
-      {chatOpen && (
+      {chatOpen && !hideFloatingAI && (
         <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
           {/* Backdrop mờ */}
           <Animated.View style={[styles.backdrop, { opacity: backdropAnim }]}>

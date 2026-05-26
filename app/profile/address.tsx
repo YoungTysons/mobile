@@ -41,15 +41,15 @@ export default function ShippingAddressScreen() {
 
   const handleSaveAddress = async () => {
     if (!ho_ten.trim()) {
-      Alert.alert('Cảnh báo', 'Vui lòng điền Họ và tên người nhận.');
+      alert('Vui lòng điền Họ và tên.');
       return;
     }
     if (!so_dien_thoai.trim()) {
-      Alert.alert('Cảnh báo', 'Vui lòng điền Số điện thoại nhận hàng.');
+      alert('Vui lòng điền Số điện thoại.');
       return;
     }
     if (!dia_chi.trim()) {
-      Alert.alert('Cảnh báo', 'Vui lòng điền Địa chỉ giao hàng.');
+      alert('Vui lòng điền Địa chỉ.');
       return;
     }
 
@@ -70,44 +70,41 @@ export default function ShippingAddressScreen() {
           dia_chi: dia_chi.trim(),
         });
 
-        Alert.alert(
-          'Thành công 🏡✨',
-          'Đã lưu thông tin giao hàng mặc định của bạn. Khi đặt hàng, hệ thống sẽ tự động điền các thông tin này!',
-          [{ text: 'Đồng ý', onPress: () => router.back() }]
-        );
+        alert('Thông tin hồ sơ cá nhân của bạn đã được cập nhật thành công! 🎉');
+        router.back();
       }
     } catch (err: any) {
       console.error('Lỗi lưu địa chỉ mặc định:', err);
-      Alert.alert('Lỗi lưu trữ', err.response?.data?.error || 'Không thể kết nối lên máy chủ để cập nhật.');
+      alert(err.response?.data?.error || 'Không thể kết nối lên máy chủ để cập nhật.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#000' : '#faf9f6' }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Địa chỉ giao nhận</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Hồ sơ của tôi</Text>
         <View style={{ width: 32 }} />
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.formContainer} showsVerticalScrollIndicator={false}>
           
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Sổ địa chỉ mặc định 🏡</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Thông tin hồ sơ cá nhân 📝</Text>
           <Text style={[styles.sectionDesc, { color: colors.textSecondary }]}>
-            Thiết lập thông tin liên hệ và địa chỉ nhận hàng của bạn để thanh toán nhanh chóng hơn khi mua sắm.
+            Cập nhật Họ và tên, Số điện thoại và Địa chỉ nhận hàng của bạn để hoàn thiện hồ sơ.
           </Text>
 
-          {/* Card Soạn thảo */}
-          <View style={[styles.card, { backgroundColor: colors.backgroundElement }]}>
+          {/* Form phẳng cùng màu nền */}
+          <View style={[styles.card, { backgroundColor: colors.background }]}>
             
             {/* Tên người nhận */}
-            <Text style={[styles.label, { color: colors.text }]}>Họ và tên người nhận</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Họ và tên</Text>
             <View style={[styles.inputContainer, { borderColor: isDark ? '#333' : '#e2e8f0' }]}>
               <Ionicons name="person-outline" size={20} color="#10b981" style={styles.inputIcon} />
               <TextInput
@@ -120,7 +117,7 @@ export default function ShippingAddressScreen() {
             </View>
 
             {/* Số điện thoại */}
-            <Text style={[styles.label, { color: colors.text, marginTop: 16 }]}>Số điện thoại nhận hàng</Text>
+            <Text style={[styles.label, { color: colors.text, marginTop: 16 }]}>Số điện thoại</Text>
             <View style={[styles.inputContainer, { borderColor: isDark ? '#333' : '#e2e8f0' }]}>
               <Ionicons name="call-outline" size={20} color="#10b981" style={styles.inputIcon} />
               <TextInput
@@ -134,7 +131,7 @@ export default function ShippingAddressScreen() {
             </View>
 
             {/* Địa chỉ giao hàng */}
-            <Text style={[styles.label, { color: colors.text, marginTop: 16 }]}>Địa chỉ giao hàng mặc định</Text>
+            <Text style={[styles.label, { color: colors.text, marginTop: 16 }]}>Địa chỉ</Text>
             <View style={[styles.inputContainer, { borderColor: isDark ? '#333' : '#e2e8f0', alignItems: 'flex-start', height: 100 }]}>
               <Ionicons name="location-outline" size={20} color="#10b981" style={[styles.inputIcon, { marginTop: 12 }]} />
               <TextInput
@@ -156,7 +153,7 @@ export default function ShippingAddressScreen() {
               ) : (
                 <>
                   <Ionicons name="save-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                  <Text style={styles.submitText}>Lưu & Đồng bộ</Text>
+                  <Text style={styles.submitText}>Lưu thông tin</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -204,16 +201,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 20,
-    padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-      },
-      android: { elevation: 2 },
-    }),
+    paddingVertical: 8,
   },
   label: {
     fontSize: 14,
