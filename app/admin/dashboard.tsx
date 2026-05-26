@@ -132,7 +132,7 @@ export default function AdminDashboardScreen() {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>🛡️ Hệ thống Quản trị Aether</Text>
         <TouchableOpacity style={styles.refreshBtn} onPress={loadData}>
-          <Ionicons name="refresh" size={22} color="#0f766e" />
+          <Ionicons name="refresh" size={22} color="#10b981" />
         </TouchableOpacity>
       </View>
 
@@ -160,7 +160,7 @@ export default function AdminDashboardScreen() {
 
       {loading ? (
         <View style={styles.loader}>
-          <ActivityIndicator size="large" color="#0f766e" />
+          <ActivityIndicator size="large" color="#10b981" />
           <Text style={[styles.loaderText, { color: colors.textSecondary }]}>Đang tải dữ liệu thời gian thực...</Text>
         </View>
       ) : (
@@ -171,7 +171,7 @@ export default function AdminDashboardScreen() {
               {/* Metrics cards grid */}
               <View style={styles.metricsGrid}>
                 <View style={[styles.metricCard, { backgroundColor: '#e6f4f1' }]}>
-                  <Ionicons name="trending-up" size={28} color="#0f766e" />
+                  <Ionicons name="trending-up" size={28} color="#10b981" />
                   <Text style={styles.metricLabel}>Doanh Thu</Text>
                   <Text style={styles.metricVal}>{stats.tongDoanhThu?.toLocaleString()}đ</Text>
                 </View>
@@ -197,7 +197,7 @@ export default function AdminDashboardScreen() {
                   onPress={() => router.push('/shop')}
                 >
                   <View style={styles.actionIconWrap}>
-                    <Ionicons name="add-circle" size={22} color="#0f766e" />
+                    <Ionicons name="add-circle" size={22} color="#10b981" />
                   </View>
                   <Text style={[styles.actionText, { color: colors.text }]}>Xem danh sách SP</Text>
                 </TouchableOpacity>
@@ -327,14 +327,14 @@ const styles = StyleSheet.create({
   },
   activeTabButton: {
     borderBottomWidth: 3,
-    borderBottomColor: '#0f766e',
+    borderBottomColor: '#10b981',
   },
   tabText: {
     fontSize: 13,
     fontWeight: '700',
   },
   activeTabText: {
-    color: '#0f766e',
+    color: '#10b981',
   },
   loader: {
     flex: 1,
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#e2f0ed',
+    backgroundColor: '#ecfdf5',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -452,11 +452,11 @@ const styles = StyleSheet.create({
   orderPriceText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0f766e',
+    color: '#10b981',
     marginTop: 4,
   },
   approveBtn: {
-    backgroundColor: '#0f766e',
+    backgroundColor: '#10b981',
     paddingVertical: 10,
     borderRadius: 12,
     alignItems: 'center',

@@ -43,34 +43,46 @@ export default function LoginScreen() {
       
       if (res.data && res.data.token) {
         await login(res.data.user, res.data.token);
-        router.replace('/');
+        router.replace('/membership');
       } else {
         throw new Error('Sai thông tin tài khoản hoặc mật khẩu.');
       }
     } catch (err: any) {
-      console.log('Lỗi đăng nhập API, kích hoạt chế độ đăng nhập dự phòng:', err.message);
+      console.log('Lỗi đăng nhập API:', err.message);
       
-      // CHẾ ĐỘ PHÒNG VỆ OFFLINE:
-      // Cho phép đăng nhập bất kỳ tài khoản khách hàng nào để nhà phát triển dễ test giao diện di động.
-      setTimeout(async () => {
-        const isAdmin = email.includes('admin');
-        const mockUser = {
-          id: isAdmin ? 1 : 3,
-          email: email,
-          ho_ten: isAdmin ? 'Quản trị viên (Offline)' : 'Nguyễn Văn Khách (Offline)',
-          so_dien_thoai: '0987654321',
-          vai_tro: isAdmin ? 'Admin Tổng' : 'Khách hàng',
-          la_admin: isAdmin,
-          dia_chi: '789 Đường Láng, Đống Đa, Hà Nội',
-          anh_dai_dien: isAdmin 
-            ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200' 
-            : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'
-        };
-        const mockToken = 'mock_jwt_token_for_offline_testing';
-        
-        await login(mockUser, mockToken);
-        router.replace('/');
-      }, 800);
+      if (err.response) {
+        // Máy chủ phản hồi mã lỗi (ví dụ: 400, 401, 500)
+        const serverMsg = err.response.data?.message || 'Có lỗi xảy ra khi đăng nhập!';
+        setErrorMsg(serverMsg);
+        if (Platform.OS === 'web') {
+          alert(`Lỗi đăng nhập: ${serverMsg}`);
+        } else {
+          Alert.alert('Lỗi đăng nhập', serverMsg);
+        }
+      } else {
+        // Không thể kết nối tới API (máy chủ ngoại tuyến hoặc lỗi mạng)
+        console.log('Kích hoạt chế độ đăng nhập dự phòng.');
+        setErrorMsg('');
+        setTimeout(async () => {
+          const isAdmin = email.includes('admin');
+          const mockUser = {
+            id: isAdmin ? 1 : 3,
+            email: email,
+            ho_ten: isAdmin ? 'Quản trị viên (Offline)' : 'Nguyễn Văn Khách (Offline)',
+            so_dien_thoai: '0987654321',
+            vai_tro: isAdmin ? 'Admin Tổng' : 'Khách hàng',
+            la_admin: isAdmin,
+            dia_chi: '789 Đường Láng, Đống Đa, Hà Nội',
+            anh_dai_dien: isAdmin 
+              ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200' 
+              : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'
+          };
+          const mockToken = 'mock_jwt_token_for_offline_testing';
+          
+          await login(mockUser, mockToken);
+          router.replace('/membership');
+        }, 800);
+      }
     } finally {
       setLoading(false);
     }
@@ -132,7 +144,7 @@ export default function LoginScreen() {
             {errorMsg.length > 0 && <Text style={styles.errorText}>{errorMsg}</Text>}
 
             <TouchableOpacity 
-              style={[styles.submitBtn, { backgroundColor: '#0f766e' }]}
+              style={[styles.submitBtn, { backgroundColor: '#10b981' }]}
               onPress={handleLogin}
               disabled={loading}
             >
@@ -184,7 +196,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#0f766e',
+    backgroundColor: '#10b981',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -267,7 +279,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   registerLink: {
-    color: '#0f766e',
+    color: '#10b981',
     fontSize: 13,
     fontWeight: '700',
   },

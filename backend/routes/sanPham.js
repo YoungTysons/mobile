@@ -35,15 +35,18 @@ router.get('/', async (req, res) => {
   }
 })
 
-// GET /api/san-pham/top-rated - Lấy 2 sản phẩm có đánh giá cao nhất
+// GET /api/san-pham/top-rated - Lấy sản phẩm nổi bật (top đánh giá)
 router.get('/top-rated', async (req, res) => {
   try {
     const result = await query(`
-      SELECT TOP 2
-        s.id, s.ten_san_pham, s.duong_dan_seo, s.gia_ban, s.diem_danh_gia_tb,
+      SELECT TOP 6
+        s.id, s.ten_san_pham, s.duong_dan_seo, s.gia_ban, s.gia_cu,
+        s.diem_danh_gia_tb, s.tong_luot_danh_gia, s.nhan_san_pham,
+        d.ten_danh_muc AS category,
         (SELECT TOP 1 duong_dan_anh FROM AnhSanPham 
          WHERE id_san_pham = s.id AND la_anh_chinh = 1) AS anh_bia
       FROM SanPham s
+      LEFT JOIN DanhMuc d ON s.id_danh_muc = d.id
       WHERE s.trang_thai NOT IN (N'Ẩn', N'Hết hàng')
       ORDER BY s.diem_danh_gia_tb DESC, s.tong_luot_danh_gia DESC
     `)

@@ -46,19 +46,42 @@ export default function RegisterScreen() {
       });
 
       if (res.status === 201 || res.data) {
-        Alert.alert('Đăng ký thành công', 'Chào mừng bạn đến với Aether Shop! Vui lòng đăng nhập.', [
-          { text: 'Đăng nhập ngay', onPress: () => router.replace('/login') }
-        ]);
+        if (Platform.OS === 'web') {
+          alert('Đăng ký thành công! Chào mừng bạn đến với Aether Shop! Vui lòng đăng nhập.');
+          router.replace('/login');
+        } else {
+          Alert.alert('Đăng ký thành công', 'Chào mừng bạn đến với Aether Shop! Vui lòng đăng nhập.', [
+            { text: 'Đăng nhập ngay', onPress: () => router.replace('/login') }
+          ]);
+        }
       }
     } catch (err: any) {
-      console.log('Lỗi đăng ký API, kích hoạt chế độ đăng ký dự phòng:', err.message);
+      console.log('Lỗi đăng ký API:', err.message);
       
-      // PHÒNG VỆ OFFLINE: Cho phép đăng ký thành công ngay lập tức để dễ kiểm thử
-      setTimeout(() => {
-        Alert.alert('Đăng ký thành công (Offline)', 'Tài khoản mẫu của bạn đã được đăng ký trên di động. Hãy đăng nhập thử!', [
-          { text: 'Đăng nhập ngay', onPress: () => router.replace('/login') }
-        ]);
-      }, 800);
+      if (err.response) {
+        // Máy chủ phản hồi mã lỗi (ví dụ: 400, 401, 500)
+        const serverMsg = err.response.data?.message || 'Có lỗi xảy ra khi đăng ký!';
+        setErrorMsg(serverMsg);
+        if (Platform.OS === 'web') {
+          alert(`Lỗi đăng ký: ${serverMsg}`);
+        } else {
+          Alert.alert('Lỗi đăng ký', serverMsg);
+        }
+      } else {
+        // Không thể kết nối tới API (máy chủ ngoại tuyến hoặc lỗi mạng)
+        console.log('Kích hoạt chế độ đăng ký dự phòng.');
+        setErrorMsg('');
+        setTimeout(() => {
+          if (Platform.OS === 'web') {
+            alert('Đăng ký thành công (Offline)! Tài khoản mẫu của bạn đã được đăng ký trên di động. Hãy đăng nhập thử!');
+            router.replace('/login');
+          } else {
+            Alert.alert('Đăng ký thành công (Offline)', 'Tài khoản mẫu của bạn đã được đăng ký trên di động. Hãy đăng nhập thử!', [
+              { text: 'Đăng nhập ngay', onPress: () => router.replace('/login') }
+            ]);
+          }
+        }, 800);
+      }
     } finally {
       setLoading(false);
     }
@@ -129,7 +152,7 @@ export default function RegisterScreen() {
             {errorMsg.length > 0 && <Text style={styles.errorText}>{errorMsg}</Text>}
 
             <TouchableOpacity 
-              style={[styles.submitBtn, { backgroundColor: '#0f766e' }]}
+              style={[styles.submitBtn, { backgroundColor: '#10b981' }]}
               onPress={handleRegister}
               disabled={loading}
             >
@@ -252,7 +275,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   loginLink: {
-    color: '#0f766e',
+    color: '#10b981',
     fontSize: 13,
     fontWeight: '700',
   },

@@ -229,7 +229,7 @@ export default function CheckoutScreen() {
             ]}
             onPress={() => setPaymentMethod('COD')}
           >
-            <Ionicons name="wallet-outline" size={22} color="#0f766e" />
+            <Ionicons name="wallet-outline" size={22} color="#10b981" />
             <View style={styles.methodInfo}>
               <Text style={[styles.methodName, { color: colors.text }]}>
                 Thanh toán khi nhận hàng (COD)
@@ -249,7 +249,7 @@ export default function CheckoutScreen() {
             ]}
             onPress={() => setPaymentMethod('VietQR')}
           >
-            <Ionicons name="qr-code-outline" size={22} color="#0f766e" />
+            <Ionicons name="qr-code-outline" size={22} color="#10b981" />
             <View style={styles.methodInfo}>
               <Text style={[styles.methodName, { color: colors.text }]}>
                 Quét mã VietQR chuyển khoản (PayOS)
@@ -323,13 +323,13 @@ export default function CheckoutScreen() {
                 Ngân hàng: <Text style={{ fontWeight: '700' }}>{payosQRData ? 'VietinBank (PayOS)' : 'MB Bank (Quân Đội)'}</Text>
               </Text>
               <Text style={[styles.detailText, { color: colors.text }]}>
-                Số tài khoản: <Text style={{ fontWeight: '700', color: '#0f766e' }}>{payosQRData ? payosQRData.accountNumber : '0366448294'}</Text>
+                Số tài khoản: <Text style={{ fontWeight: '700', color: '#10b981' }}>{payosQRData ? payosQRData.accountNumber : '0366448294'}</Text>
               </Text>
               <Text style={[styles.detailText, { color: colors.text }]}>
                 Chủ tài khoản: <Text style={{ fontWeight: '700' }}>{payosQRData ? payosQRData.accountName : 'AETHER SHOP'}</Text>
               </Text>
               <Text style={[styles.detailText, { color: colors.text }]}>
-                Số tiền: <Text style={{ fontWeight: '700', color: '#0f766e' }}>{cartTotal.toLocaleString()}đ</Text>
+                Số tiền: <Text style={{ fontWeight: '700', color: '#10b981' }}>{cartTotal.toLocaleString()}đ</Text>
               </Text>
               <Text style={[styles.detailText, { color: colors.text }]}>
                 Nội dung chuyển khoản: <Text style={{ fontWeight: '700' }}>{payosQRData ? payosQRData.description : `AETHER PAYMENT DH${createdOrderId}`}</Text>
@@ -418,8 +418,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   methodCardActive: {
-    borderColor: '#0f766e',
-    backgroundColor: '#f0fbf8',
+    borderColor: '#10b981',
+    backgroundColor: '#ecfdf5',
   },
   methodInfo: {
     flex: 1,
@@ -446,8 +446,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   radioActive: {
-    borderColor: '#0f766e',
-    backgroundColor: '#0f766e',
+    borderColor: '#10b981',
+    backgroundColor: '#10b981',
   },
   summaryItem: {
     flexDirection: 'row',
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f766e',
+    color: '#10b981',
   },
   bottomSticky: {
     position: 'absolute',
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   submitOrderBtn: {
-    backgroundColor: '#0f766e',
+    backgroundColor: '#10b981',
     paddingVertical: 14,
     borderRadius: 28,
     alignItems: 'center',
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   confirmTransferBtn: {
-    backgroundColor: '#0f766e',
+    backgroundColor: '#10b981',
     paddingVertical: 14,
     borderRadius: 28,
     alignSelf: 'stretch',
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   webPayBtn: {
-    borderColor: '#0f766e',
+    borderColor: '#10b981',
     borderWidth: 1.5,
     paddingVertical: 12,
     borderRadius: 28,
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   webPayBtnText: {
-    color: '#0f766e',
+    color: '#10b981',
     fontSize: 13,
     fontWeight: '700',
   },

@@ -38,7 +38,7 @@ export default function CartScreen() {
       {cartItems.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={[styles.emptyIconWrap, { backgroundColor: colors.backgroundElement }]}>
-            <Ionicons name="cart-outline" size={64} color="#0f766e" />
+            <Ionicons name="cart-outline" size={64} color="#10b981" />
           </View>
           <Text style={[styles.emptyText, { color: colors.text }]}>Giỏ hàng của bạn đang trống!</Text>
           <Text style={[styles.emptySubText, { color: colors.textSecondary }]}>
@@ -82,7 +82,7 @@ export default function CartScreen() {
                         style={styles.qtyBtn}
                         onPress={() => updateQuantity(item.id, -1)}
                       >
-                        <Ionicons name="remove" size={16} color="#0f766e" />
+                        <Ionicons name="remove" size={16} color="#10b981" />
                       </TouchableOpacity>
                       
                       <Text style={[styles.qtyText, { color: colors.text }]}>
@@ -93,7 +93,7 @@ export default function CartScreen() {
                         style={styles.qtyBtn}
                         onPress={() => updateQuantity(item.id, 1)}
                       >
-                        <Ionicons name="add" size={16} color="#0f766e" />
+                        <Ionicons name="add" size={16} color="#10b981" />
                       </TouchableOpacity>
                     </View>
 
@@ -120,7 +120,7 @@ export default function CartScreen() {
             
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Phí vận chuyển:</Text>
-              <Text style={[styles.summaryValue, { color: '#0f766e' }]}>Miễn phí</Text>
+              <Text style={[styles.summaryValue, { color: '#10b981' }]}>Miễn phí</Text>
             </View>
 
             <View style={[styles.divider, { backgroundColor: colors.backgroundElement }]} />
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   itemPrice: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0f766e',
+    color: '#10b981',
     marginTop: 4,
   },
   actionRow: {
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   shopBtn: {
-    backgroundColor: '#0f766e',
+    backgroundColor: '#10b981',
     paddingVertical: 12,
     paddingHorizontal: 28,
     borderRadius: 24,
@@ -309,10 +309,10 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#0f766e',
+    color: '#10b981',
   },
   checkoutBtn: {
-    backgroundColor: '#0f766e',
+    backgroundColor: '#10b981',
     paddingVertical: 14,
     borderRadius: 28,
     alignItems: 'center',

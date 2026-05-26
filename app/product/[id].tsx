@@ -22,6 +22,16 @@ const { width } = Dimensions.get('window');
 
 // Mock data phòng vệ chi tiết cây
 const MOCK_PLANTS: Record<number, any> = {
+  201: {
+    id: 201,
+    ten_san_pham: 'Hạt Giống Sen Đá Test 2K',
+    gia_ban: 2000,
+    mo_ta: 'Hạt giống sen đá và xương rồng mini cao cấp, siêu dễ gieo trồng và chăm sóc, tỷ lệ nảy mầm cao thích hợp làm quà tặng hoặc tự gieo tại nhà. Sản phẩm thiết kế riêng phục vụ kiểm thử thanh toán PayOS.',
+    huong_dan_cham_soc: 'Gieo hạt: Gieo trực tiếp lên bề mặt đất ẩm, không phủ đất lên trên hạt. Tưới nước: Phun sương nhẹ giữ ẩm hàng ngày, tránh ngập úng.',
+    anh_bia: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800',
+    category: 'Hạt Giống & Củ',
+    diem_danh_gia_tb: 5.0,
+  },
   1: {
     id: 1,
     ten_san_pham: 'Monstera Deliciosa (Trầu Bà Nam Mỹ)',
@@ -38,7 +48,7 @@ const MOCK_PLANTS: Record<number, any> = {
     gia_ban: 130000,
     mo_ta: 'Cây Lưỡi Hổ là loại cây phong thủy mang ý nghĩa trừ tà, xua đuổi điều không may. Cây cực dễ chăm sóc, có thể sống tốt trong môi trường thiếu ánh sáng và sản sinh lượng oxy lớn vào ban đêm.',
     huong_dan_cham_soc: 'Tưới nước: Rất hạn chế tưới nước, khoảng 10-15 ngày/lần. Ánh sáng: Thích nghi tốt từ bóng râm đến nắng nhẹ.',
-    anh_bia: 'https://images.unsplash.com/photo-1599598477150-13f898305f0a?w=800',
+    anh_bia: 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=800',
     category: 'Cây Trong Nhà',
     diem_danh_gia_tb: 4.9,
   },
@@ -48,7 +58,7 @@ const MOCK_PLANTS: Record<number, any> = {
     gia_ban: 110000,
     mo_ta: 'Cây Lan Ý có khả năng hấp thụ các chất độc hại trong không khí. Hoa lan ý màu trắng tinh khiết tạo điểm nhấn sang trọng cho bàn làm việc, phòng khách hay phòng ngủ của bạn.',
     huong_dan_cham_soc: 'Tưới nước: Thích ẩm ướt nhẹ, tưới 2 lần/tuần hoặc khi thấy lá hơi rủ xuống. Ánh sáng: Thích bóng râm mát mẻ.',
-    anh_bia: 'https://images.unsplash.com/photo-1593691509543-c55fb32e7355?w=800',
+    anh_bia: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800',
     category: 'Cây Trong Nhà',
     diem_danh_gia_tb: 4.7,
   }
@@ -112,7 +122,7 @@ export default function ProductDetailScreen() {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color="#0f766e" />
+        <ActivityIndicator size="large" color="#10b981" />
       </View>
     );
   }
@@ -144,7 +154,7 @@ export default function ProductDetailScreen() {
         {/* Product Details info */}
         <View style={styles.infoSection}>
           <View style={styles.tagRow}>
-            <Text style={[styles.catTag, { color: '#0f766e', backgroundColor: '#e2f0ed' }]}>
+            <Text style={[styles.catTag, { color: '#10b981', backgroundColor: '#ecfdf5' }]}>
               {product.category || 'Cây Cảnh'}
             </Text>
             <View style={styles.ratingBox}>
@@ -156,7 +166,7 @@ export default function ProductDetailScreen() {
           </View>
 
           <Text style={[styles.plantName, { color: colors.text }]}>{product.ten_san_pham}</Text>
-          <Text style={styles.price}>{product.gia_ban.toLocaleString()}đ</Text>
+          <Text style={[styles.price, { color: colors.text }]}>{product.gia_ban.toLocaleString()}đ</Text>
 
           {/* Premium Nav Tabs */}
           <View style={[styles.tabBar, { borderBottomColor: colors.backgroundElement }]}>
@@ -271,7 +281,6 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#0f766e',
     marginTop: 8,
   },
   tabBar: {
@@ -285,14 +294,14 @@ const styles = StyleSheet.create({
   },
   tabActive: {
     borderBottomWidth: 2,
-    borderBottomColor: '#0f766e',
+    borderBottomColor: '#10b981',
   },
   tabText: {
     fontSize: 14,
     fontWeight: '700',
   },
   tabTextActive: {
-    color: '#0f766e',
+    color: '#10b981',
   },
   tabContent: {
     paddingVertical: 16,
@@ -316,7 +325,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   cartBtn: {
-    backgroundColor: '#0f766e',
+    backgroundColor: '#10b981',
     paddingVertical: 14,
     borderRadius: 28,
     alignItems: 'center',

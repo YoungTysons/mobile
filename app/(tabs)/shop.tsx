@@ -22,10 +22,11 @@ const { width } = Dimensions.get('window');
 
 // Mock data phòng vệ trong trường hợp backend chưa bật hoặc chưa kết nối
 const MOCK_PRODUCTS = [
+  { id: 201, ten_san_pham: 'Hạt Giống Sen Đá Test 2K', gia_ban: 2000, diem_danh_gia_tb: 5.0, category: 'Hạt Giống & Củ', anh_bia: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800' },
   { id: 1, ten_san_pham: 'Monstera Deliciosa (Trầu Bà Nam Mỹ)', gia_ban: 380000, diem_danh_gia_tb: 4.8, category: 'Cây Trong Nhà', anh_bia: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=800' },
-  { id: 2, ten_san_pham: 'Snake Plant (Cây Lưỡi Hổ)', gia_ban: 130000, diem_danh_gia_tb: 4.9, category: 'Cây Trong Nhà', anh_bia: 'https://images.unsplash.com/photo-1599598477150-13f898305f0a?w=800' },
-  { id: 3, ten_san_pham: 'Peace Lily (Cây Lan Ý)', gia_ban: 110000, diem_danh_gia_tb: 4.7, category: 'Cây Trong Nhà', anh_bia: 'https://images.unsplash.com/photo-1593691509543-c55fb32e7355?w=800' },
-  { id: 4, ten_san_pham: 'Fiddle Leaf Fig (Bàng Singapore)', gia_ban: 280000, diem_danh_gia_tb: 4.6, category: 'Cây Trong Nhà', anh_bia: 'https://images.unsplash.com/photo-1597055181300-e3633a917e3c?w=800' },
+  { id: 2, ten_san_pham: 'Snake Plant (Cây Lưỡi Hổ)', gia_ban: 130000, diem_danh_gia_tb: 4.9, category: 'Cây Trong Nhà', anh_bia: 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=800' },
+  { id: 3, ten_san_pham: 'Peace Lily (Cây Lan Ý)', gia_ban: 110000, diem_danh_gia_tb: 4.7, category: 'Cây Trong Nhà', anh_bia: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800' },
+  { id: 4, ten_san_pham: 'Fiddle Leaf Fig (Bàng Singapore)', gia_ban: 280000, diem_danh_gia_tb: 4.6, category: 'Cây Trong Nhà', anh_bia: 'https://images.unsplash.com/photo-1545241047-6083a3684587?w=800' },
   { id: 5, ten_san_pham: 'Golden Barrel Cactus (Xương Rồng Tròn)', gia_ban: 90000, diem_danh_gia_tb: 4.5, category: 'Sen Đá & Xương Rồng', anh_bia: 'https://images.unsplash.com/photo-1551893665-f843f600794e?w=800' },
   { id: 6, ten_san_pham: 'Echeveria Elegans (Sen Đá Thạch Ngọc)', gia_ban: 40000, diem_danh_gia_tb: 4.6, category: 'Sen Đá & Xương Rồng', anh_bia: 'https://images.unsplash.com/photo-1509423350716-97f9360b4e09?w=800' }
 ];
@@ -128,7 +129,7 @@ export default function ShopScreen() {
                 key={idx}
                 style={[
                   styles.filterBadge,
-                  { backgroundColor: active ? '#0f766e' : colors.backgroundElement }
+                  { backgroundColor: active ? '#10b981' : colors.backgroundElement }
                 ]}
                 onPress={() => setSelectedCat(cat)}
               >
@@ -147,7 +148,7 @@ export default function ShopScreen() {
       {/* Products Grid */}
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#0f766e" />
+          <ActivityIndicator size="large" color="#10b981" />
         </View>
       ) : (
         <FlatList
@@ -191,7 +192,7 @@ export default function ShopScreen() {
                   )}
                 </View>
 
-                <Text style={styles.productPrice}>
+                <Text style={[styles.productPrice, { color: colors.text }]}>
                   {item.gia_ban.toLocaleString()}đ
                 </Text>
               </View>
@@ -306,7 +307,6 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0f766e',
     marginTop: 6,
   },
   centerContainer: {

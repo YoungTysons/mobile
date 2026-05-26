@@ -108,7 +108,7 @@ export default function ChatbotScreen() {
             <Text style={styles.botStatus}>Đang trực tuyến</Text>
           </View>
         </View>
-        <Ionicons name="sparkles" size={20} color="#0f766e" />
+        <Ionicons name="sparkles" size={20} color="#10b981" />
       </View>
 
       {/* Messages Stream */}
@@ -166,7 +166,7 @@ export default function ChatbotScreen() {
                 style={styles.msgAvatar}
               />
               <View style={[styles.msgBubble, styles.bubbleBot, { backgroundColor: colors.backgroundElement, paddingVertical: 12 }]}>
-                <ActivityIndicator size="small" color="#0f766e" />
+                <ActivityIndicator size="small" color="#10b981" />
               </View>
             </View>
           )}
@@ -184,7 +184,7 @@ export default function ChatbotScreen() {
             returnKeyType="send"
           />
           <TouchableOpacity 
-            style={[styles.sendBtn, { backgroundColor: inputText.trim() ? '#0f766e' : '#e2e8f0' }]}
+            style={[styles.sendBtn, { backgroundColor: inputText.trim() ? '#10b981' : '#e2e8f0' }]}
             onPress={handleSend}
             disabled={!inputText.trim()}
           >
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.03)',
   },
   bubbleUser: {
-    backgroundColor: '#0f766e',
+    backgroundColor: '#10b981',
     borderBottomRightRadius: 4,
   },
   msgText: {
